@@ -173,7 +173,7 @@ component Glow inherits Rectangle {
 }
 
 /// A part lit as the picture shows it, in the zone's colour, over the line
-/// art it hides.
+/// art it hides. Spans the drawing; its images span only the part.
 component Light {
     in property <ArtLight> light;
     in property <color> colour;
@@ -181,15 +181,19 @@ component Light {
     width: 100%;
     height: 100%;
     Image {
-        width: 100%;
-        height: 100%;
+        x: root.light.left * root.width;
+        y: root.light.top * root.height;
+        width: root.light.width * root.width;
+        height: root.light.height * root.height;
         source: root.light.cover;
         colorize: Theme.background.with-alpha(root.colour.alpha);
     }
 
     Image {
-        width: 100%;
-        height: 100%;
+        x: root.light.left * root.width;
+        y: root.light.top * root.height;
+        width: root.light.width * root.width;
+        height: root.light.height * root.height;
         source: root.light.image;
         colorize: root.colour;
     }

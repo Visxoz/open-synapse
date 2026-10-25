@@ -67,6 +67,10 @@ impl App {
                 x: l.at.0,
                 y: l.at.1,
                 right: l.right,
+                left: l.bounds[0],
+                top: l.bounds[1],
+                width: l.bounds[2],
+                height: l.bounds[3],
             })
         };
         let picture = match art {

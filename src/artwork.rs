@@ -31,6 +31,9 @@ pub struct Light {
     pub at: (f32, f32),
     /// Its right-hand edge, as a fraction of the drawing's width.
     pub right: f32,
+    /// Where `mask` and `cover` sit, as they are cropped to the part: left,
+    /// top, width and height, as fractions of the drawing.
+    pub bounds: [f32; 4],
 }
 
 #[derive(Default)]
@@ -94,45 +97,45 @@ pub fn load(pid: u16, url: Option<&str>) -> io::Result<Art> {
         }
     };
     let (outline, details, lit) = draw(w, h, &rgba).ok_or_else(|| io::Error::other("nothing opaque to draw"))?;
-    let packed = pack(&outline, &details, &lit)?;
-    if let Err(e) = std::fs::write(art_path(pid), &packed) {
+    let packed = pack(&outline, &details, &lit);
+    if let Err(e) = std::fs::write(art_path(pid), encode(&packed)?) {
         log::warn!("could not keep the line art: {e}");
     }
-    // Read back from the packed layers, so a picture looks the same drawn
-    // now as loaded later.
-    unpack(&packed)
+    // Made from the packed layers, so a picture looks the same drawn now as
+    // loaded later.
+    Ok(unpacked(&packed))
 }
 
 /// The layers in one image: the outline in red, the details in green and
 /// the lit parts in blue.
-fn pack(outline: &Plane, details: &Plane, lit: &Plane) -> io::Result<Vec<u8>> {
+fn pack(outline: &Plane, details: &Plane, lit: &Plane) -> (usize, usize, Vec<u8>) {
     let byte = |v: f32| (v * 255.).round() as u8;
-    let rgba = (0..outline.v.len())
-        .flat_map(|i| [byte(outline.v[i]), byte(details.v[i]), byte(lit.v[i]), 255])
+    let rgba = outline
+        .v
+        .iter()
+        .zip(&details.v)
+        .zip(&lit.v)
+        .flat_map(|((&o, &d), &l)| [byte(o), byte(d), byte(l), 255])
         .collect();
-    encode(&(outline.w, outline.h, rgba))
+    (outline.w, outline.h, rgba)
 }
 
 fn unpack(bytes: &[u8]) -> io::Result<Art> {
-    let (w, h, rgba) = decode(bytes)?;
-    let plane = |channel: usize| Plane {
-        w,
-        h,
-        v: rgba
-            .as_chunks::<4>()
-            .0
-            .iter()
-            .map(|p| f32::from(p[channel]) / 255.)
-            .collect(),
-    };
-    Ok(art(&plane(0), &plane(1), &plane(2)))
+    Ok(unpacked(&decode(bytes)?))
 }
 
-fn art(outline: &Plane, details: &Plane, lit: &Plane) -> Art {
+fn unpacked((w, h, rgba): &(usize, usize, Vec<u8>)) -> Art {
+    let (w, h, px) = (*w, *h, rgba.as_chunks::<4>().0);
+    let lit = Plane {
+        w,
+        h,
+        v: px.iter().map(|p| f32::from(p[2]) / 255.).collect(),
+    };
+    let edge: Vec<bool> = px.iter().map(|p| p[0] > 127).collect();
     Art {
-        outline: pixels(outline),
-        details: pixels(details),
-        lights: lights(lit, outline),
+        outline: white(w, h, px.iter().map(|p| p[0])),
+        details: white(w, h, px.iter().map(|p| p[1])),
+        lights: lights(&lit, &edge),
     }
 }
 
@@ -293,26 +296,12 @@ fn main_shape(w: usize, h: usize, rgba: &[u8]) -> Option<(Vec<bool>, [usize; 4])
     let solid = |i: usize| rgba[i * 4 + 3] > 127;
     // Marks the shape containing `start` in `seen` and returns its size.
     let fill = |seen: &mut [bool], stack: &mut Vec<usize>, start: usize| {
-        let mut size = 0;
         seen[start] = true;
-        stack.push(start);
-        while let Some(i) = stack.pop() {
-            size += 1;
-            let (x, y) = (i % w, i / w);
-            let neighbours = [
-                (x > 0).then(|| i - 1),
-                (x + 1 < w).then(|| i + 1),
-                (y > 0).then(|| i - w),
-                (y + 1 < h).then(|| i + w),
-            ];
-            for n in neighbours.into_iter().flatten() {
-                if !seen[n] && solid(n) {
-                    seen[n] = true;
-                    stack.push(n);
-                }
-            }
-        }
-        size
+        flood(w, h, start, stack, |i| {
+            let new = !seen[i] && solid(i);
+            seen[i] |= new;
+            new
+        })
     };
     // Every shape once to find the biggest, then that one again on its own.
     let mut seen = vec![false; w * h];
@@ -340,6 +329,29 @@ fn main_shape(w: usize, h: usize, rgba: &[u8]) -> Option<(Vec<bool>, [usize; 4])
         ];
     }
     Some((seen, bounds))
+}
+
+/// Walks the patch around `start`, already claimed, through each neighbour
+/// that `claim` takes; returns its size.
+fn flood(w: usize, h: usize, start: usize, stack: &mut Vec<usize>, mut claim: impl FnMut(usize) -> bool) -> usize {
+    let mut size = 0;
+    stack.push(start);
+    while let Some(i) = stack.pop() {
+        size += 1;
+        let (x, y) = (i % w, i / w);
+        let neighbours = [
+            (x > 0).then(|| i - 1),
+            (x + 1 < w).then(|| i + 1),
+            (y > 0).then(|| i - w),
+            (y + 1 < h).then(|| i + w),
+        ];
+        for j in neighbours.into_iter().flatten() {
+            if claim(j) {
+                stack.push(j);
+            }
+        }
+    }
+    size
 }
 
 /// The main shape cropped and scaled to `height`, transparent elsewhere:
@@ -462,26 +474,23 @@ fn draw(w: usize, h: usize, rgba: &[u8]) -> Option<(Plane, Plane, Plane)> {
     // Razer shows its mice with their lights on: strong colour, unlike the
     // greys and blacks of the shell. Around each such patch, the lightness
     // shapes the part, as pale strokes stand out from their coloured halo.
-    let colours: Vec<[f32; 3]> = px
+    let (colourful, lightness): (Vec<bool>, Vec<f32>) = px
         .as_chunks::<4>()
         .0
         .iter()
         .map(|p| {
             if p[3] < 0.9 {
-                [0.; 3]
-            } else {
-                [p[0] / p[3], p[1] / p[3], p[2] / p[3]]
+                return (false, 0.);
             }
-        })
-        .collect();
-    let colourful: Vec<bool> = colours
-        .iter()
-        .map(|&[r, g, b]| {
+            let [r, g, b] = [p[0] / p[3], p[1] / p[3], p[2] / p[3]];
             let (hi, lo) = (r.max(g).max(b), r.min(g).min(b));
             let saturation = if hi > 0. { (hi - lo) / hi } else { 0. };
-            smoothstep(0.35, 0.55, saturation) * smoothstep(0.25, 0.45, hi) > 0.5
+            (
+                smoothstep(0.35, 0.55, saturation) * smoothstep(0.25, 0.45, hi) > 0.5,
+                (hi + lo) / 2.,
+            )
         })
-        .collect();
+        .unzip();
     let shell = body.v.iter().filter(|&&v| v > 0.5).count();
     let lit_share = colourful.iter().filter(|&&c| c).count() as f32 / shell.max(1) as f32;
     let near = if lit_share > MAX_LIT_SHARE {
@@ -492,17 +501,11 @@ fn draw(w: usize, h: usize, rgba: &[u8]) -> Option<(Plane, Plane, Plane)> {
     let lit = Plane {
         w,
         h,
-        v: colours
-            .iter()
+        // Kept above zero, so the patch stays whole in the cache.
+        v: lightness
+            .into_iter()
             .zip(near)
-            .map(|(&[r, g, b], near)| {
-                // Kept above zero, so the patch stays whole in the cache.
-                if near {
-                    ((r.max(g).max(b) + r.min(g).min(b)) / 2.).max(1. / 255.)
-                } else {
-                    0.
-                }
-            })
+            .map(|(l, near)| if near { l.max(1. / 255.) } else { 0. })
             .collect(),
     };
     Some((outline, details, lit))
@@ -576,14 +579,14 @@ fn shell(p: &Patch, h: usize) -> bool {
 }
 
 /// The logo, wheel, sides and underglow as the render shows them lit.
-fn lights(lit: &Plane, outline: &Plane) -> Lights {
+fn lights(lit: &Plane, outline: &[bool]) -> Lights {
     let (w, h) = (lit.w, lit.h);
     // Each row's span of the mouse, between the first and last of its outline.
     let span: Vec<Option<(usize, usize)>> = (0..h)
         .map(|y| {
-            let row = &outline.v[y * w..][..w];
-            let first = row.iter().position(|&v| v > 0.5)?;
-            let last = row.iter().rposition(|&v| v > 0.5)?;
+            let row = &outline[y * w..][..w];
+            let first = row.iter().position(|&v| v)?;
+            let last = row.iter().rposition(|&v| v)?;
             (last > first).then_some((first, last))
         })
         .collect();
@@ -601,7 +604,8 @@ fn lights(lit: &Plane, outline: &Plane) -> Lights {
     let (labels, n) = label(w, h, &lit.v.iter().map(|&v| v > 0.).collect::<Vec<_>>());
     let mut peak = vec![0f32; n];
     for (i, &l) in labels.iter().enumerate().filter(|(_, l)| **l > 0) {
-        peak[l - 1] = peak[l - 1].max(lit.v[i]);
+        let p = &mut peak[l as usize - 1];
+        *p = p.max(lit.v[i]);
     }
     // How brightly each pixel shows, against the brightest of its patch and
     // above the shell around it; squared, so the strokes stand clear.
@@ -609,14 +613,14 @@ fn lights(lit: &Plane, outline: &Plane) -> Lights {
         let i = y as usize * w + x as usize;
         match labels[i] {
             0 => 0.,
-            l => ((lit.v[i] / peak[l - 1] - 0.25) / 0.75).clamp(0., 1.).powi(2),
+            l => ((lit.v[i] / peak[l as usize - 1] - 0.25) / 0.75).clamp(0., 1.).powi(2),
         }
     });
     // Light, its centre, light along the rim, and leftmost and rightmost.
     let mut sums = vec![(0f32, 0f32, 0f32, 0f32, w, 0usize); n];
     for (i, &l) in labels.iter().enumerate().filter(|(_, l)| **l > 0) {
         let (x, y, k) = (i % w, i / w, core.v[i]);
-        let s = &mut sums[l - 1];
+        let s = &mut sums[l as usize - 1];
         s.0 += k;
         s.1 += k * x as f32;
         s.2 += k * y as f32;
@@ -656,12 +660,9 @@ fn lights(lit: &Plane, outline: &Plane) -> Lights {
     }
     let parts: Vec<Option<Part>> = patches.iter().map(|p| p.as_ref().and_then(part)).collect();
 
+    // How far the cover reaches past the light, before its blur.
+    let spread = (h / 320).max(1);
     let light = |which: Part| {
-        let of = |i: usize| labels[i] > 0 && parts[labels[i] - 1] == Some(which);
-        let mine = core.map(|x, y| {
-            let i = y as usize * w + x as usize;
-            if of(i) { core.v[i] } else { 0. }
-        });
         let (area, sx, sy) = sums
             .iter()
             .zip(&parts)
@@ -670,23 +671,46 @@ fn lights(lit: &Plane, outline: &Plane) -> Lights {
         if area == 0. {
             return None;
         }
-        let mask = mine.map(|x, y| (mine.at(x, y) * 1.6).min(1.));
+        let mine = |i: usize| match labels[i] {
+            l if l > 0 && parts[l as usize - 1] == Some(which) => core.v[i],
+            _ => 0.,
+        };
+        // Its box, and its right-hand edge where it shines strongest.
+        let (mut b, mut right) = ([w, h, 0, 0], None);
+        for (i, k) in (0..w * h).map(|i| (i, mine(i))).filter(|&(_, k)| k > 0.) {
+            let (x, y) = (i % w, i / w);
+            b = [b[0].min(x), b[1].min(y), b[2].max(x + 1), b[3].max(y + 1)];
+            if k > 0.5 {
+                right = right.max(Some(x));
+            }
+        }
+        let right = right?;
+        // Only the box is kept, grown to hold the cover and its blur.
+        let pad = spread + 1;
+        let [x0, y0] = [b[0].saturating_sub(pad), b[1].saturating_sub(pad)];
+        let [x1, y1] = [(b[2] + pad).min(w), (b[3] + pad).min(h)];
+        let (cw, ch) = (x1 - x0, y1 - y0);
+        let mask = Plane {
+            w: cw,
+            h: ch,
+            v: (y0..y1)
+                .flat_map(|y| (x0..x1).map(move |x| (mine(y * w + x) * 1.6).min(1.)))
+                .collect(),
+        };
         let shown: Vec<bool> = mask.v.iter().map(|&v| v > 0.05).collect();
         let cover = Plane {
-            w,
-            h,
-            v: dilate(w, h, &shown, (h / 320).max(1))
-                .into_iter()
-                .map(|c| if c { 1. } else { 0. })
-                .collect(),
+            w: cw,
+            h: ch,
+            v: dilate(cw, ch, &shown, spread).into_iter().map(f32::from).collect(),
         }
         .blur();
-        let right = (0..w * h).filter(|&i| mine.v[i] > 0.5).map(|i| i % w).max()?;
+        let (fw, fh) = (w as f32, h as f32);
         Some(Light {
             mask: pixels(&mask),
             cover: pixels(&cover),
-            at: (sx / area / w as f32, sy / area / h as f32),
-            right: right as f32 / w as f32,
+            at: (sx / area / fw, sy / area / fh),
+            right: right as f32 / fw,
+            bounds: [x0 as f32 / fw, y0 as f32 / fh, cw as f32 / fw, ch as f32 / fh],
         })
     };
     Lights {
@@ -698,50 +722,51 @@ fn lights(lit: &Plane, outline: &Plane) -> Lights {
     }
 }
 
-/// `on` grown by `r` pixels each way.
+/// `on` grown by `r` pixels each way, a row and then a column at a time.
 fn dilate(w: usize, h: usize, on: &[bool], r: usize) -> Vec<bool> {
     let mut rows = vec![false; w * h];
     for y in 0..h {
-        for x in 0..w {
-            rows[y * w + x] = (x.saturating_sub(r)..(x + r + 1).min(w)).any(|x| on[y * w + x]);
-        }
+        grow(on, &mut rows, y * w, 1, w, r);
     }
     let mut out = vec![false; w * h];
-    for y in 0..h {
-        for x in 0..w {
-            out[y * w + x] = (y.saturating_sub(r)..(y + r + 1).min(h)).any(|y| rows[y * w + x]);
-        }
+    for x in 0..w {
+        grow(&rows, &mut out, x, w, h, r);
     }
     out
 }
 
+/// Marks the `n` cells from `start`, `step` apart, that lie within `r` of
+/// one set in `src`: a pass each way, so the cost does not grow with `r`.
+fn grow(src: &[bool], dst: &mut [bool], start: usize, step: usize, n: usize, r: usize) {
+    let mut gap = usize::MAX;
+    for i in (0..n).map(|k| start + k * step) {
+        gap = if src[i] { 0 } else { gap.saturating_add(1) };
+        dst[i] = gap <= r;
+    }
+    gap = usize::MAX;
+    for i in (0..n).rev().map(|k| start + k * step) {
+        gap = if src[i] { 0 } else { gap.saturating_add(1) };
+        dst[i] |= gap <= r;
+    }
+}
+
 /// Numbers each connected patch of `on` from 1, 0 elsewhere; returns the
 /// numbers and how many patches there are.
-fn label(w: usize, h: usize, on: &[bool]) -> (Vec<usize>, usize) {
-    let mut labels = vec![0; w * h];
+fn label(w: usize, h: usize, on: &[bool]) -> (Vec<u32>, usize) {
+    let mut labels = vec![0u32; w * h];
     let mut n = 0;
     let mut stack = Vec::new();
     for start in 0..w * h {
-        if !on[start] || labels[start] != 0 {
-            continue;
-        }
-        n += 1;
-        labels[start] = n;
-        stack.push(start);
-        while let Some(i) = stack.pop() {
-            let (x, y) = (i % w, i / w);
-            let neighbours = [
-                (x > 0).then(|| i - 1),
-                (x + 1 < w).then(|| i + 1),
-                (y > 0).then(|| i - w),
-                (y + 1 < h).then(|| i + w),
-            ];
-            for j in neighbours.into_iter().flatten() {
-                if on[j] && labels[j] == 0 {
-                    labels[j] = n;
-                    stack.push(j);
+        if on[start] && labels[start] == 0 {
+            n += 1;
+            labels[start] = n as u32;
+            flood(w, h, start, &mut stack, |j| {
+                let new = on[j] && labels[j] == 0;
+                if new {
+                    labels[j] = n as u32;
                 }
-            }
+                new
+            });
         }
     }
     (labels, n)
@@ -780,7 +805,7 @@ mod tests {
 
     fn drawn(w: usize, h: usize, rgba: &[u8]) -> Art {
         let (outline, details, lit) = draw(w, h, rgba).unwrap();
-        art(&outline, &details, &lit)
+        unpacked(&pack(&outline, &details, &lit))
     }
 
     #[test]
@@ -811,7 +836,8 @@ mod tests {
                 ([31, 45, 33, 55], GREEN),
             ],
         );
-        let lights = drawn(100, 100, &rgba).lights;
+        let art = drawn(100, 100, &rgba);
+        let (dw, lights) = (art.outline.width() as f32, art.lights);
         let at = |l: &Option<Light>| l.as_ref().expect("lit").at;
         let (wx, wy) = at(&lights.wheel);
         assert!(
@@ -825,11 +851,15 @@ mod tests {
         );
         let (sx, _) = at(&lights.sides);
         assert!(sx < 0.2, "side at {sx}");
-        // Lit at its centre, softening at its edge, dark below it.
-        let logo = lights.logo.unwrap().mask;
-        let w = logo.width() as usize;
-        let below: Vec<u8> = ((ly * HEIGHT as f32) as usize..HEIGHT)
-            .map(|y| logo.as_slice()[y * w + (lx * w as f32) as usize].a)
+        // Lit at its centre, softening at its edge, dark below it, within the
+        // box it is cropped to.
+        let logo = lights.logo.unwrap();
+        let [bx, by, ..] = logo.bounds;
+        let (x0, y0) = ((bx * dw).round() as usize, (by * HEIGHT as f32).round() as usize);
+        let (w, h) = (logo.mask.width() as usize, logo.mask.height() as usize);
+        let column = (lx * dw) as usize - x0;
+        let below: Vec<u8> = ((ly * HEIGHT as f32) as usize - y0..h)
+            .map(|y| logo.mask.as_slice()[y * w + column].a)
             .collect();
         assert_eq!(below[0], 255);
         assert!(below.iter().any(|a| (1..200).contains(a)), "a soft edge");
@@ -924,14 +954,15 @@ mod tests {
             &[([48, 63, 52, 66], [0, 200, 0])],
         );
         let (outline, details, lit) = draw(100, 100, &rgba).unwrap();
-        let art = art(&outline, &details, &lit);
-        let back = unpack(&pack(&outline, &details, &lit).unwrap()).unwrap();
+        let packed = pack(&outline, &details, &lit);
+        let (art, back) = (unpacked(&packed), unpack(&encode(&packed).unwrap()).unwrap());
         assert_eq!(back.outline.as_slice(), art.outline.as_slice());
         assert_eq!(back.details.as_slice(), art.details.as_slice());
-        // The lit layer is kept to a byte, so its light may differ by a hair.
-        let at = |a: &Art| a.lights.logo.as_ref().map(|l| l.at);
-        let ((x0, y0), (x1, y1)) = (at(&art).unwrap(), at(&back).unwrap());
-        assert!((x0 - x1).abs() < 0.01 && (y0 - y1).abs() < 0.01);
+        let logo = |a: &Art| {
+            let l = a.lights.logo.as_ref().expect("lit");
+            (l.at, l.bounds, l.mask.as_slice().to_vec())
+        };
+        assert!(logo(&art) == logo(&back), "the lit logo comes back whole");
     }
 
     #[test]

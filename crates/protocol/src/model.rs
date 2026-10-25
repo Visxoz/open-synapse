@@ -42,7 +42,8 @@ impl Model {
     /// The transaction ID for a command whose expected one differs from
     /// `tid`; a read is matched by its write's ID.
     pub fn tid_for(&self, class: u8, id: u8) -> Option<u8> {
-        let (_, rules) = crate::tids::TIDS.iter().find(|(pid, _)| *pid == self.pid)?;
+        let tids = crate::tids::TIDS;
+        let (_, rules) = tids[tids.binary_search_by_key(&self.pid, |(pid, _)| *pid).ok()?];
         rules
             .iter()
             .find(|r| r.class == class && r.id == id & 0x7F)
@@ -57,12 +58,6 @@ pub struct TidFor {
     /// The write's command ID; the read's adds 0x80.
     pub id: u8,
     pub tid: u8,
-}
-
-impl TidFor {
-    pub const fn new(class: u8, id: u8, tid: u8) -> Self {
-        Self { class, id, tid }
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
