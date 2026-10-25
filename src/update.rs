@@ -52,12 +52,13 @@ pub struct Update {
 /// The command that takes over once the app has closed.
 static PENDING: Mutex<Option<Command>> = Mutex::new(None);
 
+fn pending() -> std::sync::MutexGuard<'static, Option<Command>> {
+    PENDING.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
+}
+
 /// An installed copy has Inno Setup's uninstaller beside it.
 fn kind() -> Kind {
-    let installed = std::env::current_exe()
-        .ok()
-        .and_then(|exe| Some(exe.parent()?.join("unins000.exe")))
-        .is_some_and(|uninstaller| uninstaller.exists());
+    let installed = std::env::current_exe().is_ok_and(|exe| exe.with_file_name("unins000.exe").exists());
     if installed { Kind::Installed } else { Kind::Portable }
 }
 
@@ -93,14 +94,20 @@ fn newer(release: Release, current: &str, kind: Kind) -> Result<Option<Update>, 
         Kind::Installed => "_x64-setup.exe",
         Kind::Portable => "_x64-portable.exe",
     };
-    let find = |matches: &dyn Fn(&str) -> bool| release.assets.iter().find(|a| matches(&a.name)).cloned();
-    let asset = find(&|name| name.ends_with(suffix)).ok_or("the release has no build for this copy")?;
-    let sums = find(&|name| name == SUMS).ok_or("the release has no checksums")?;
+    let assets = &release.assets;
+    let asset = assets
+        .iter()
+        .find(|a| a.name.ends_with(suffix))
+        .ok_or("the release has no build for this copy")?;
+    let sums = assets
+        .iter()
+        .find(|a| a.name == SUMS)
+        .ok_or("the release has no checksums")?;
     Ok(Some(Update {
         version: format!("{}.{}.{}", latest.0, latest.1, latest.2),
         kind,
-        asset,
-        sums,
+        asset: asset.clone(),
+        sums: sums.clone(),
     }))
 }
 
@@ -148,7 +155,7 @@ pub fn stage(update: &Update, build: &[u8]) -> Result<(), String> {
             Command::new(exe)
         }
     };
-    *PENDING.lock().unwrap_or_else(|e| e.into_inner()) = Some(command);
+    *pending() = Some(command);
     Ok(())
 }
 
@@ -170,7 +177,7 @@ fn replace(exe: &Path, build: &[u8]) -> io::Result<()> {
 /// Starts a staged update. Called as the app exits, after it has let go of
 /// its single-instance lock, which the new copy needs.
 pub fn launch_pending() {
-    if let Some(mut command) = PENDING.lock().unwrap_or_else(|e| e.into_inner()).take()
+    if let Some(mut command) = pending().take()
         && let Err(e) = command.spawn()
     {
         log::warn!("could not start the update: {e}");

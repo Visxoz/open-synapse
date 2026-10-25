@@ -1,10 +1,8 @@
 //! Switching, editing and linking profiles.
 
-use std::rc::Rc;
+use slint::ComponentHandle;
 
-use slint::{ComponentHandle, ModelRc, VecModel};
-
-use super::App;
+use super::{App, view::model};
 use crate::win::programs::{self, ForegroundHook};
 
 impl App {
@@ -91,10 +89,10 @@ impl App {
     }
 
     pub(super) fn list_programs(&self) {
-        let running: Vec<slint::SharedString> = programs::running().into_iter().map(Into::into).collect();
+        let running = programs::running().into_iter().map(Into::into).collect();
         self.ui()
             .global::<crate::Backend>()
-            .set_running_programs(ModelRc::from(Rc::new(VecModel::from(running))));
+            .set_running_programs(model(running));
     }
 
     /// Follows the program in front while automatic switching is on.

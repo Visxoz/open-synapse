@@ -124,8 +124,7 @@ fn main() {
     let close_app = app.clone();
     ui.window().on_close_requested(move || {
         if let Some(ui) = weak.upgrade() {
-            let window = current_geometry(&ui, close_app.settings().window);
-            close_app.set_settings(|s| s.window = window);
+            close_app.set_settings(|s| s.window = current_geometry(&ui, s.window));
         }
         if close_app.settings().close_to_tray {
             close_app.hide();

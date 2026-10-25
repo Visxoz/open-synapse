@@ -62,14 +62,19 @@ fn crack(url: &str) -> io::Result<(String, String, u16)> {
     }
     // SAFETY: the cracked pointers and lengths lie within `url_w`.
     let (host, path) = unsafe {
-        let host = std::slice::from_raw_parts(parts.lpszHostName, parts.dwHostNameLength as usize);
-        let path = std::slice::from_raw_parts(
-            parts.lpszUrlPath,
-            (parts.dwUrlPathLength + parts.dwExtraInfoLength) as usize,
-        );
-        (String::from_utf16_lossy(host), String::from_utf16_lossy(path))
+        (
+            std::slice::from_raw_parts(parts.lpszHostName, parts.dwHostNameLength as usize),
+            std::slice::from_raw_parts(
+                parts.lpszUrlPath,
+                (parts.dwUrlPathLength + parts.dwExtraInfoLength) as usize,
+            ),
+        )
     };
-    Ok((host.to_ascii_lowercase(), path, parts.nPort))
+    Ok((
+        String::from_utf16_lossy(host).to_ascii_lowercase(),
+        String::from_utf16_lossy(path),
+        parts.nPort,
+    ))
 }
 
 /// Whether `host` is one of `hosts` or a subdomain of one; any host when

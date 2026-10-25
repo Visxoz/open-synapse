@@ -2,8 +2,9 @@
 
 use std::{io, ptr};
 
-use windows_sys::Win32::System::Registry::{
-    HKEY_CURRENT_USER, REG_SZ, RRF_RT_REG_SZ, RegDeleteKeyValueW, RegGetValueW, RegSetKeyValueW,
+use windows_sys::Win32::{
+    Foundation::ERROR_FILE_NOT_FOUND,
+    System::Registry::{HKEY_CURRENT_USER, REG_SZ, RRF_RT_REG_SZ, RegDeleteKeyValueW, RegGetValueW, RegSetKeyValueW},
 };
 
 use super::wide;
@@ -54,7 +55,7 @@ pub fn set(on: bool) -> io::Result<()> {
     match err {
         0 => Ok(()),
         // Turning off what was never on.
-        2 if !on => Ok(()),
+        ERROR_FILE_NOT_FOUND if !on => Ok(()),
         e => Err(io::Error::from_raw_os_error(e as i32)),
     }
 }

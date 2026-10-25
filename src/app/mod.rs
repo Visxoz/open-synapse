@@ -181,9 +181,8 @@ impl App {
 
     pub fn quit(&self) {
         self.save_timer.stop();
-        let st = self.state.borrow();
-        st.profiles.save();
-        st.settings.save();
+        // Settings are saved as they change; profiles wait for the timer.
+        self.state.borrow().profiles.save();
         let _ = slint::quit_event_loop();
     }
 }

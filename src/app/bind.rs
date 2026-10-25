@@ -11,8 +11,8 @@ use crate::{
     win::{autostart, pointer},
 };
 
-fn u16_of(v: impl Into<f64>) -> u16 {
-    v.into().round().clamp(0.0, f64::from(u16::MAX)) as u16
+fn u16_of(v: i32) -> u16 {
+    v.clamp(0, i32::from(u16::MAX)) as u16
 }
 
 impl App {

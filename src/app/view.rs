@@ -12,20 +12,20 @@ use crate::{
     worker::Info,
 };
 
-fn model<T: Clone + 'static>(items: Vec<T>) -> ModelRc<T> {
+pub(super) fn model<T: Clone + 'static>(items: Vec<T>) -> ModelRc<T> {
     ModelRc::from(Rc::new(VecModel::from(items)))
 }
 
 /// Replaces a model only when its rows change, so repeated elements keep
 /// their state, such as a slider being dragged.
-fn rows<T: Clone + PartialEq + 'static>(current: ModelRc<T>, items: Vec<T>, set: impl FnOnce(ModelRc<T>)) {
+fn rows<T: Clone + PartialEq + 'static>(current: ModelRc<T>, items: &[T], set: impl FnOnce(ModelRc<T>)) {
     let same = current.row_count() == items.len()
         && items
             .iter()
             .enumerate()
             .all(|(i, item)| current.row_data(i).as_ref() == Some(item));
     if !same {
-        set(model(items));
+        set(model(items.to_vec()));
     }
 }
 
@@ -160,10 +160,9 @@ impl App {
             })
             .collect();
         let selected = if st.devices.is_empty() { -1 } else { st.selected as i32 };
-        rows(self.panel.get_devices(), items.clone(), |m| self.panel.set_devices(m));
+        rows(self.panel.get_devices(), &items, |m| self.panel.set_devices(m));
         self.panel.set_device(selected);
-        self.panel.set_scanned(b.get_scanned());
-        rows(b.get_devices(), items, |m| b.set_devices(m));
+        rows(b.get_devices(), &items, |m| b.set_devices(m));
         b.set_device(selected);
 
         let mut tooltip = String::from("Open Synapse");
@@ -214,7 +213,7 @@ impl App {
         b.set_serial(device.serial.as_str().into());
         b.set_product_id(format!("{:04X}", m.pid).into());
         b.set_path(device.path.as_str().into());
-        rows(b.get_features(), features(m), |v| b.set_features(v));
+        rows(b.get_features(), &features(m), |v| b.set_features(v));
 
         b.set_has_dpi(m.dpi != DpiRange::None);
         b.set_dpi_min(DpiRange::MIN.into());
@@ -226,7 +225,7 @@ impl App {
         });
         b.set_has_stages(s.stages.is_some());
         if let Some(stages) = &s.stages {
-            let items = stages
+            let items: Vec<StageItem> = stages
                 .stages
                 .iter()
                 .map(|d| StageItem {
@@ -234,7 +233,7 @@ impl App {
                     y: d.y.into(),
                 })
                 .collect();
-            rows(b.get_stages(), items, |v| b.set_stages(v));
+            rows(b.get_stages(), &items, |v| b.set_stages(v));
             b.set_active_stage(stages.active as i32);
         }
         let rates: Vec<Choice> = m
@@ -243,42 +242,42 @@ impl App {
             .iter()
             .map(|&r| choice(r.to_string(), r.into()))
             .collect();
-        rows(b.get_poll_rates(), rates.clone(), |v| b.set_poll_rates(v));
+        rows(b.get_poll_rates(), &rates, |v| b.set_poll_rates(v));
         b.set_poll(s.poll.map_or(0, i32::from));
-        self.refresh_panel(device, rates);
+        self.refresh_panel(device, &rates);
 
         let scroll: Vec<_> = ScrollSetting::ALL
             .into_iter()
             .enumerate()
             .filter(|(_, setting)| m.features.contains(setting.feature()))
             .collect();
-        let options = scroll
+        let options: Vec<Choice> = scroll
             .iter()
             .map(|&(i, setting)| choice(setting.label(), i as i32))
             .collect();
-        let values = scroll
+        let values: Vec<bool> = scroll
             .iter()
             .map(|(_, setting)| s.scroll.iter().any(|(k, on)| k == setting && *on))
             .collect();
-        rows(b.get_scroll_options(), options, |v| b.set_scroll_options(v));
-        rows(b.get_scroll_values(), values, |v| b.set_scroll_values(v));
+        rows(b.get_scroll_options(), &options, |v| b.set_scroll_options(v));
+        rows(b.get_scroll_values(), &values, |v| b.set_scroll_values(v));
 
         let zones = m.lighting.zones;
-        let zone_items = zones
+        let zone_items: Vec<_> = zones
             .iter()
             .enumerate()
             .map(|(i, z)| choice(z.label(), i as i32))
             .collect();
-        rows(b.get_zones(), zone_items, |v| b.set_zones(v));
+        rows(b.get_zones(), &zone_items, |v| b.set_zones(v));
         b.set_zone(st.zone as i32);
         b.set_zone_led(st.zone().map_or(-1, |z| z.led as i32));
         if let Some(zone) = st.zone() {
-            let effects = zone
+            let effects: Vec<Choice> = zone
                 .effects
                 .iter()
                 .map(|k| choice(razer_protocol::Effect::label(k), k.index() as i32))
                 .collect();
-            rows(b.get_effects(), effects, |v| b.set_effects(v));
+            rows(b.get_effects(), &effects, |v| b.set_effects(v));
             b.set_effect(st.effect(zone.led).map_or(-1, |e| e.kind().index() as i32));
             b.set_has_brightness(zone.brightness);
             b.set_has_colour(m.lighting.rgb);
@@ -293,7 +292,7 @@ impl App {
         b.set_colour_b(colour(st.params.b));
         b.set_speed(st.params.speed.into());
         b.set_direction(st.params.direction.into());
-        rows(b.get_looks(), looks(&st, device), |v| b.set_looks(v));
+        rows(b.get_looks(), &looks(&st, device), |v| b.set_looks(v));
 
         b.set_has_battery(m.power.contains(Power::BATTERY));
         b.set_battery(s.battery.map_or(0, i32::from));
@@ -323,32 +322,34 @@ impl App {
             ),
             _ => (Vec::new(), Vec::new()),
         };
-        rows(b.get_dongle_modes(), modes, |v| b.set_dongle_modes(v));
-        rows(b.get_dongle_leds(), leds, |v| b.set_dongle_leds(v));
+        rows(b.get_dongle_modes(), &modes, |v| b.set_dongle_modes(v));
+        rows(b.get_dongle_leds(), &leds, |v| b.set_dongle_leds(v));
     }
 
     pub(super) fn refresh_profiles(&self) {
         let ui = self.ui();
         let b = ui.global::<Backend>();
         let st = self.state.borrow();
-        let items = st
-            .profiles
-            .list
-            .iter()
-            .map(|p| ProfileItem {
-                name: p.name.as_str().into(),
-                programs: model(p.programs.iter().map(|e| SharedString::from(e.as_str())).collect()),
-            })
-            .collect::<Vec<_>>();
-        // Profiles hold nested models, which never compare equal, so compare by content.
+        let list = &st.profiles.list;
+        // Profiles hold nested models, which never compare equal, so compare
+        // by content, and build them only when something differs.
         let current = b.get_profiles();
-        let changed = current.row_count() != items.len()
-            || items.iter().enumerate().any(|(i, item)| {
-                current
-                    .row_data(i)
-                    .is_none_or(|old| old.name != item.name || !old.programs.iter().eq(item.programs.iter()))
+        let changed = current.row_count() != list.len()
+            || list.iter().enumerate().any(|(i, p)| {
+                current.row_data(i).is_none_or(|old| {
+                    old.name != p.name.as_str()
+                        || old.programs.row_count() != p.programs.len()
+                        || !old.programs.iter().zip(&p.programs).all(|(a, b)| a == b.as_str())
+                })
             });
         if changed {
+            let items = list
+                .iter()
+                .map(|p| ProfileItem {
+                    name: p.name.as_str().into(),
+                    programs: model(p.programs.iter().map(|e| SharedString::from(e.as_str())).collect()),
+                })
+                .collect();
             b.set_profiles(model(items));
         }
         b.set_profile(st.profiles.active as i32);
@@ -359,9 +360,9 @@ impl App {
             .iter()
             .map(|p| SharedString::from(p.name.as_str()))
             .collect();
-        rows(self.tray.get_profiles(), names.clone(), |v| self.tray.set_profiles(v));
+        rows(self.tray.get_profiles(), &names, |v| self.tray.set_profiles(v));
         self.tray.set_profile(st.profiles.active as i32);
-        rows(self.panel.get_profiles(), names, |v| self.panel.set_profiles(v));
+        rows(self.panel.get_profiles(), &names, |v| self.panel.set_profiles(v));
         self.panel.set_profile(st.profiles.active as i32);
     }
 
@@ -403,7 +404,7 @@ impl App {
 impl App {
     /// The selected device as the tray panel shows it, with the polling
     /// rates the window already built.
-    fn refresh_panel(&self, device: &Info, rates: Vec<Choice>) {
+    fn refresh_panel(&self, device: &Info, rates: &[Choice]) {
         let (m, s, p) = (device.model, &device.state, &self.panel);
         p.set_name(display_name(m).into());
         p.set_link(link_label(m.link).into());
@@ -419,7 +420,7 @@ impl App {
                 .map(|(i, &d)| choice(dpi_label(d), i as i32))
                 .collect()
         });
-        rows(p.get_stages(), stages, |v| p.set_stages(v));
+        rows(p.get_stages(), &stages, |v| p.set_stages(v));
         p.set_active_stage(s.stages.as_ref().map_or(0, |stages| stages.active as i32));
         p.set_dpi(s.dpi.map_or_else(String::new, dpi_label).into());
         rows(p.get_poll_rates(), rates, |v| p.set_poll_rates(v));
