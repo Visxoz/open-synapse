@@ -12,7 +12,7 @@ use slint::{
     winit_030::{EventResult, WinitWindowAccessor, winit::event::WindowEvent},
 };
 
-use super::{App, with_app};
+use super::{App, POINTER_EVERY, with_app};
 use crate::{win::window, worker::Request};
 
 /// A click on the tray icon takes the focus first, which closes the panel;
@@ -113,8 +113,16 @@ impl App {
     /// Tells the worker whether anything is on screen, which sets how often
     /// it polls the mice.
     pub(super) fn sync_shown(&self) {
-        let shown = self.ui().window().is_visible() || self.panel.window().is_visible();
-        self.worker.send(Request::Shown(shown));
+        let window = self.ui().window().is_visible();
+        self.worker
+            .send(Request::Shown(window || self.panel.window().is_visible()));
+        if !window {
+            self.pointer_timer.stop();
+        } else if !self.pointer_timer.running() {
+            self.pointer_timer.start(TimerMode::Repeated, POINTER_EVERY, || {
+                with_app(|app| app.refresh_pointer());
+            });
+        }
     }
 
     /// Moves the panel into place and gives it the focus, which the click on

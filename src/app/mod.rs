@@ -30,6 +30,7 @@ use crate::{
 
 const SAVE_AFTER: Duration = Duration::from_millis(800);
 const NOTICE_FOR: Duration = Duration::from_secs(6);
+const POINTER_EVERY: Duration = Duration::from_secs(2);
 
 thread_local! {
     static CURRENT: RefCell<Weak<App>> = const { RefCell::new(Weak::new()) };
@@ -81,6 +82,9 @@ pub struct App {
     save_timer: Timer,
     notice_timer: Timer,
     update_timer: Timer,
+    /// Rereads Windows' pointer settings while the window is open, as other
+    /// programs change them too.
+    pointer_timer: Timer,
     foreground: RefCell<Option<ForegroundHook>>,
 }
 
@@ -114,6 +118,7 @@ impl App {
             save_timer: Timer::default(),
             notice_timer: Timer::default(),
             update_timer: Timer::default(),
+            pointer_timer: Timer::default(),
             foreground: RefCell::new(None),
         });
         CURRENT.set(Rc::downgrade(&app));
