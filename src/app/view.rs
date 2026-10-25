@@ -103,6 +103,8 @@ fn looks(st: &State, device: &Info) -> Vec<ZoneLook> {
         };
         let label = mine.map_or_else(String::new, |led| led.label().to_uppercase());
         let (kind, p) = st.effect(led).map_or((-1, EffectParams::default()), |e| {
+            // One-colour LEDs are drawn in white, as they are sent.
+            let e = if device.model.lighting.rgb { e } else { e.in_white() };
             (e.kind().index() as i32, e.params(EffectParams::default()))
         });
         ZoneLook {
@@ -240,7 +242,7 @@ impl App {
         let zone_items = zones
             .iter()
             .enumerate()
-            .map(|(i, z)| choice(z.led.label(), i as i32))
+            .map(|(i, z)| choice(z.label(), i as i32))
             .collect();
         rows(b.get_zones(), zone_items, |v| b.set_zones(v));
         b.set_zone(st.zone as i32);
@@ -254,6 +256,7 @@ impl App {
             rows(b.get_effects(), effects, |v| b.set_effects(v));
             b.set_effect(st.effect(zone.led).map_or(-1, |e| e.kind().index() as i32));
             b.set_has_brightness(zone.brightness);
+            b.set_has_colour(m.lighting.rgb);
             let level = s
                 .brightness
                 .iter()

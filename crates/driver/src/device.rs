@@ -109,14 +109,19 @@ impl Device {
         self.send(setting.batch(self.model))
     }
 
-    /// Tries the transaction ID that worked last, then the others.
+    /// Tries the transaction ID the model expects for this command, else the
+    /// one that worked last, then the others.
     fn exchange(&self, request: &Report) -> Result<Report> {
-        let first = self.tid.get();
+        let expected = self.model.tid_for(request.class, request.id);
+        let first = expected.unwrap_or(self.tid.get());
         let mut last = Error::NoResponse;
         for tid in std::iter::once(first).chain(TIDS.into_iter().filter(|&t| t != first)) {
             match self.transact(&request.with_tid(tid)) {
                 Ok(r) => {
-                    self.tid.set(tid);
+                    // A command with its own ID says nothing of the others'.
+                    if expected.is_none() {
+                        self.tid.set(tid);
+                    }
                     self.confirmed.set(true);
                     return Ok(r);
                 }

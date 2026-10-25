@@ -50,7 +50,7 @@ component Options {
 
 export component LightingPage {
     property <int> editing;
-    property <bool> wants-colour: Backend.effect == Kind.static || Backend.effect == Kind.breath || Backend.effect == Kind.dual || Backend.effect == Kind.reactive || Backend.effect == Kind.blinking;
+    property <bool> wants-colour: Backend.has-colour && (Backend.effect == Kind.static || Backend.effect == Kind.breath || Backend.effect == Kind.dual || Backend.effect == Kind.reactive || Backend.effect == Kind.blinking);
     VerticalLayout {
         spacing: 30px;
         alignment: start;

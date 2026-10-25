@@ -64,16 +64,19 @@ pub fn serial() -> Query<String> {
     })
 }
 
-/// Older mice scale DPI into a byte against this.
-const BYTE_DPI_SCALE: u32 = 6750;
+/// The most a DPI byte can say, 252.
+const BYTE_DPI_MAX: u16 = 6400;
 
+/// Older mice take DPI as a byte counting 25 DPI from 100, set in steps of
+/// 100 as razercfg's Naga and DeathAdder 2013 drivers do. OpenRazer scales
+/// against 6750 instead, which strays from it away from 1800 DPI.
 fn dpi_to_byte(v: u16) -> u8 {
-    let v = u32::from(v.clamp(DpiRange::MIN, BYTE_DPI_SCALE as u16));
-    ((v * 255 + BYTE_DPI_SCALE / 2) / BYTE_DPI_SCALE) as u8
+    let hundreds = (v.clamp(DpiRange::MIN, BYTE_DPI_MAX) + 50) / 100;
+    ((hundreds - 1) * 4) as u8
 }
 
 fn byte_to_dpi(b: u8) -> u16 {
-    ((u32::from(b) * BYTE_DPI_SCALE + 127) / 255) as u16
+    (u16::from(b) + 2) / 4 * 100 + 100
 }
 
 pub fn get_dpi(m: &Model) -> Option<Query<Dpi>> {
@@ -304,10 +307,14 @@ mod tests {
     }
 
     #[test]
-    fn byte_dpi_round_trips_closely() {
-        for dpi in [100, 1800, 3500, 6750] {
-            assert!(byte_to_dpi(dpi_to_byte(dpi)).abs_diff(dpi) <= 14, "{dpi}");
+    fn byte_dpi_follows_razercfg() {
+        assert_eq!(dpi_to_byte(1000), 36);
+        assert_eq!(dpi_to_byte(5600), 220);
+        assert_eq!(dpi_to_byte(1840), 68);
+        for dpi in (100..=BYTE_DPI_MAX).step_by(100) {
+            assert_eq!(byte_to_dpi(dpi_to_byte(dpi)), dpi);
         }
+        assert_eq!(dpi_to_byte(u16::MAX), 252);
     }
 
     #[test]

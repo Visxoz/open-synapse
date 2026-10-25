@@ -38,6 +38,31 @@ impl Model {
     pub fn has_battery(&self) -> bool {
         self.power.contains(Power::BATTERY)
     }
+
+    /// The transaction ID for a command whose expected one differs from
+    /// `tid`; a read is matched by its write's ID.
+    pub fn tid_for(&self, class: u8, id: u8) -> Option<u8> {
+        let (_, rules) = crate::tids::TIDS.iter().find(|(pid, _)| *pid == self.pid)?;
+        rules
+            .iter()
+            .find(|r| r.class == class && r.id == id & 0x7F)
+            .map(|r| r.tid)
+    }
+}
+
+/// A command a model expects under its own transaction ID.
+#[derive(Debug, Clone, Copy)]
+pub struct TidFor {
+    pub class: u8,
+    /// The write's command ID; the read's adds 0x80.
+    pub id: u8,
+    pub tid: u8,
+}
+
+impl TidFor {
+    pub const fn new(class: u8, id: u8, tid: u8) -> Self {
+        Self { class, id, tid }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -192,18 +217,29 @@ pub struct Zone {
     pub led: Led,
     pub effects: Effects,
     pub brightness: bool,
+    /// What the zone lights, where the LED's own name would mislead.
+    pub name: Option<&'static str>,
+}
+
+impl Zone {
+    pub fn label(&self) -> &'static str {
+        self.name.unwrap_or(self.led.label())
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct Lighting {
     pub proto: LightProto,
     pub zones: &'static [Zone],
+    /// The LEDs take any colour; otherwise they shine in one fixed colour.
+    pub rgb: bool,
 }
 
 impl Lighting {
     pub const NONE: Self = Self {
         proto: LightProto::Extended,
         zones: &[],
+        rgb: false,
     };
 
     pub fn zone(&self, led: Led) -> Option<&Zone> {

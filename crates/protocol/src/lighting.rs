@@ -100,6 +100,19 @@ impl Effect {
         }
     }
 
+    /// The effect in white, which one-colour LEDs show at full strength.
+    pub const fn in_white(self) -> Self {
+        const W: Rgb = Rgb::new(0xFF, 0xFF, 0xFF);
+        match self {
+            Self::Static(_) => Self::Static(W),
+            Self::Blinking(_) => Self::Blinking(W),
+            Self::Breathing(Breath::Single(_)) => Self::Breathing(Breath::Single(W)),
+            Self::Breathing(Breath::Dual(..)) => Self::Breathing(Breath::Dual(W, W)),
+            Self::Reactive { speed, .. } => Self::Reactive { speed, colour: W },
+            other => other,
+        }
+    }
+
     pub const fn kind(&self) -> Effects {
         match self {
             Self::Off => Effects::OFF,
@@ -122,10 +135,12 @@ pub fn set_effect(m: &Model, led: Led, effect: &Effect) -> Batch {
     if !supported {
         return Batch::EMPTY;
     }
+    let rgb = m.lighting.rgb;
+    let effect = &if rgb { *effect } else { effect.in_white() };
     use LightProto as P;
     match (m.lighting.proto, led, effect) {
         (P::Classic, ..) | (P::StandardMatrix, Led::Scroll | Led::Logo, Effect::On | Effect::Off) => {
-            classic(led, effect)
+            classic(led, effect, rgb)
         }
         (P::MouseExtended, ..) => mouse_extended(led, effect),
         (P::StandardMatrix, ..) => standard_matrix(effect),
@@ -233,18 +248,26 @@ fn standard_matrix(effect: &Effect) -> Batch {
     }
 }
 
-/// Turn the LED on, set its colour, then pick the effect.
-fn classic(led: Led, effect: &Effect) -> Batch {
+/// Turn the LED on, set its colour unless it has only one, then pick the
+/// effect.
+fn classic(led: Led, effect: &Effect, rgb: bool) -> Batch {
     let l = led as u8;
     let state = |on: bool| Report::new(0x03, 0x00, 0x03, &[VARSTORE, l, u8::from(on)]);
     let colour = |c: Rgb| Report::new(0x03, 0x01, 0x05, &args([VARSTORE, l], &c.bytes()));
     let mode = |id: u8| Report::new(0x03, 0x02, 0x03, &[VARSTORE, l, id]);
+    let lit = |c: Rgb, id: u8| {
+        if rgb {
+            Batch::of(&[state(true), colour(c), mode(id)])
+        } else {
+            Batch::of(&[state(true), mode(id)])
+        }
+    };
     match *effect {
         Effect::Off => state(false).into(),
         Effect::On => state(true).into(),
-        Effect::Static(c) => Batch::of(&[state(true), colour(c), mode(0x00)]),
-        Effect::Blinking(c) => Batch::of(&[state(true), colour(c), mode(0x01)]),
-        Effect::Breathing(Breath::Single(c)) => Batch::of(&[state(true), colour(c), mode(0x02)]),
+        Effect::Static(c) => lit(c, 0x00),
+        Effect::Blinking(c) => lit(c, 0x01),
+        Effect::Breathing(Breath::Single(c)) => lit(c, 0x02),
         Effect::Spectrum => Batch::of(&[state(true), mode(0x04)]),
         _ => Batch::EMPTY,
     }
@@ -308,6 +331,21 @@ mod tests {
         let batch = set_effect(model(0x0043), Led::Logo, &Effect::Static(Rgb::new(1, 2, 3)));
         let ids: Vec<_> = batch.iter().map(|r| (r.class, r.id)).collect();
         assert_eq!(ids, [(0x03, 0x00), (0x03, 0x01), (0x03, 0x02)]);
+    }
+
+    #[test]
+    fn one_colour_leds_skip_the_colour_and_take_white() {
+        // The DeathAdder 2000 breathes as OpenRazer does: on, then the effect.
+        let batch = set_effect(
+            model(0x004F),
+            Led::Logo,
+            &Effect::Breathing(Breath::Single(Rgb::new(1, 2, 3))),
+        );
+        let ids: Vec<_> = batch.iter().map(|r| (r.class, r.id, r.args[2])).collect();
+        assert_eq!(ids, [(0x03, 0x00, 0x01), (0x03, 0x02, 0x02)]);
+        // Class 0x0F effects still carry a colour, in white.
+        let batch = set_effect(model(0x006E), Led::Logo, &Effect::Static(Rgb::new(1, 2, 3)));
+        assert_eq!(&batch[0].args[6..9], &[0xFF; 3]);
     }
 
     #[test]

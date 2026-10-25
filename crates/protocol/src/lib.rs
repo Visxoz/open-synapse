@@ -11,6 +11,7 @@ mod model;
 mod models;
 mod report;
 mod setting;
+mod tids;
 mod types;
 
 pub use commands::{Batch, Query};

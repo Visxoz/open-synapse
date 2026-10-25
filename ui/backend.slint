@@ -81,6 +81,8 @@ export global Backend {
     in property <int> speed: 2;
     in property <int> direction: 1;
     in property <bool> has-brightness;
+    // The LEDs take any colour, rather than shining in one of their own.
+    in property <bool> has-colour: true;
     in property <int> brightness: 255;
     /// Logo, scroll wheel, sides and underglow, each shown as the zone covering it.
     in property <[ZoneLook]> looks: [{ kind: -1 }, { kind: -1 }, { kind: -1 }, { kind: -1 }];
