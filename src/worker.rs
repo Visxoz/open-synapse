@@ -63,6 +63,7 @@ impl Worker {
                     devices: Vec::new(),
                     next_id: 1,
                     shown: true,
+                    reread: false,
                 }
                 .run(&rx);
                 drop(watcher);
@@ -108,6 +109,9 @@ struct Run {
     devices: Vec<Open>,
     next_id: DeviceId,
     shown: bool,
+    /// The window or panel has just opened, so the next poll reads every
+    /// setting, as other programs may have changed any of them.
+    reread: bool,
 }
 
 impl Run {
@@ -133,8 +137,9 @@ impl Run {
                 requests.extend(rx.try_iter());
             }
             self.handle(requests);
-            // Showing the window may have shortened the wait.
-            next_poll = next_poll.min(Instant::now() + self.poll_every());
+            // Showing the window may have shortened the wait, or ended it.
+            let wait = if self.reread { Duration::ZERO } else { self.poll_every() };
+            next_poll = next_poll.min(Instant::now() + wait);
         }
     }
 
@@ -149,7 +154,10 @@ impl Run {
         for request in requests {
             match request {
                 Request::Rescan => rescan = true,
-                Request::Shown(shown) => self.shown = shown,
+                Request::Shown(shown) => {
+                    self.reread |= shown && !self.shown;
+                    self.shown = shown;
+                }
                 Request::Apply(id, settings) => {
                     for setting in settings {
                         pending.retain(|(i, s)| *i != id || s.slot() != setting.slot());
@@ -224,6 +232,7 @@ impl Run {
     }
 
     fn poll(&mut self) {
+        let reread = std::mem::take(&mut self.reread);
         for open in &mut self.devices {
             let before = (open.device.firmware, open.state.clone());
             if !open.device.identified() {
@@ -232,7 +241,15 @@ impl Run {
                     continue;
                 }
             }
-            if open.complete {
+            if open.complete && reread {
+                let fresh = open.device.read_state();
+                // A mouse that has fallen asleep keeps what it last reported.
+                if fresh.awake {
+                    open.state = fresh;
+                } else {
+                    open.state.awake = false;
+                }
+            } else if open.complete {
                 open.device.read_live(&mut open.state);
             } else {
                 open.state = open.device.read_state();
