@@ -1,0 +1,24 @@
+[package]
+name = "razer-driver"
+version = "0.1.0"
+description = "Finds Razer mice and talks to them over Windows HID"
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+razer-protocol.workspace = true
+log.workspace = true
+
+[dependencies.windows-sys]
+workspace = true
+features = [
+    "Win32_Foundation",
+    "Win32_Devices_DeviceAndDriverInstallation",
+    "Win32_Devices_HumanInterfaceDevice",
+    "Win32_Security",
+    "Win32_Storage_FileSystem",
+]

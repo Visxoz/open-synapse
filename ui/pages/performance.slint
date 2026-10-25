@@ -1,0 +1,339 @@
+import { Theme, Icons } from "../theme.slint";
+import { Backend, StageItem } from "../backend.slint";
+import { Field, Icon, Section, Slider, Steps, TextButton, TextField, Toggle } from "../widgets.slint";
+import { DpiRuler } from "../ruler.slint";
+
+/// A fader with its value beside it, following the drag.
+component SliderValue {
+    in property <float> value;
+    in property <float> minimum;
+    in property <float> maximum;
+    in property <float> step: 1;
+    in property <string> unit;
+    callback released(float);
+    HorizontalLayout {
+        spacing: 16px;
+        VerticalLayout {
+            alignment: center;
+            fader := Slider {
+                width: 260px;
+                value: root.value;
+                minimum: root.minimum;
+                maximum: root.maximum;
+                step: root.step;
+                released(v) => { root.released(v); }
+            }
+        }
+
+        Text {
+            text: round(fader.current) + root.unit;
+            font-family: Theme.display;
+            font-size: 14px;
+            color: Theme.text;
+            vertical-alignment: center;
+        }
+    }
+}
+
+/// A number box that shows `value` unless it is being typed into.
+component NumberBox {
+    in property <int> value;
+    in property <string> caption;
+    callback commit(int);
+    horizontal-stretch: 0;
+    HorizontalLayout {
+        spacing: 8px;
+        Text {
+            text: root.caption;
+            font-family: Theme.display;
+            font-size: 11px;
+            letter-spacing: 1.4px;
+            color: Theme.text-3;
+            vertical-alignment: center;
+        }
+
+        box := TextField {
+            width: 76px;
+            numeric: true;
+            text: root.value;
+            accepted(text) => {
+                if text.is-float() {
+                    root.commit(text.to-float());
+                }
+                self.text = root.value;
+            }
+        }
+    }
+
+    changed value => {
+        if !box.has-focus {
+            box.text = root.value;
+        }
+    }
+}
+
+/// The large readout, exact entry and ruler for one DPI value, or a stage's.
+component Sensitivity {
+    in property <[StageItem]> stages;
+    in property <int> active;
+    callback set(int, int, int);
+    callback activate(int);
+    property <StageItem> current: root.stages[root.active];
+    property <bool> split: root.current.x != root.current.y;
+
+    /// Moves stage `i` to `dpi`, keeping its own Y when the axes are split.
+    function place(i: int, dpi: int) {
+        root.set(i, dpi, root.split && i == root.active ? root.stages[i].y : dpi);
+    }
+
+    VerticalLayout {
+        spacing: 0;
+        HorizontalLayout {
+            padding-top: 22px;
+            padding-bottom: 6px;
+            spacing: 10px;
+            Text {
+                text: root.split ? "\{root.current.x}/\{root.current.y}" : root.current.x;
+                font-family: Theme.display;
+                font-size: 60px;
+                font-weight: 300;
+                color: Theme.text;
+            }
+
+            VerticalLayout {
+                alignment: end;
+                padding-bottom: 12px;
+                horizontal-stretch: 1;
+                Text {
+                    text: "DPI";
+                    font-family: Theme.display;
+                    font-size: 13px;
+                    letter-spacing: 1.6px;
+                    color: Theme.accent;
+                }
+            }
+
+            VerticalLayout {
+                alignment: end;
+                padding-bottom: 12px;
+                horizontal-stretch: 0;
+                HorizontalLayout {
+                    spacing: 6px;
+                    NumberBox {
+                        caption: "X";
+                        value: root.current.x;
+                        commit(v) => { root.set(root.active, v, root.split ? root.current.y : v); }
+                    }
+
+                    Rectangle {
+                        width: 26px;
+                        Icon {
+                            path: root.split ? Icons.unlink : Icons.link;
+                            color: link.has-hover ? Theme.text : root.split ? Theme.text-3 : Theme.text-2;
+                        }
+
+                        link := TouchArea {
+                            mouse-cursor: pointer;
+                            clicked => {
+                                root.split = !root.split;
+                                if !root.split {
+                                    root.set(root.active, root.current.x, root.current.x);
+                                }
+                            }
+                        }
+                    }
+
+                    NumberBox {
+                        caption: "Y";
+                        value: root.current.y;
+                        commit(v) => { root.set(root.active, root.split ? root.current.x : v, v); }
+                    }
+                }
+            }
+        }
+
+        DpiRuler {
+            stages: root.stages;
+            active: root.active;
+            minimum: Backend.dpi-min;
+            maximum: Backend.dpi-max;
+            activate(i) => { root.activate(i); }
+            moved(i, dpi) => { root.place(i, dpi); }
+            released(i, dpi) => { root.place(i, dpi); }
+        }
+    }
+}
+
+component StageStrip {
+    HorizontalLayout {
+        spacing: 0;
+        padding-top: 6px;
+        alignment: start;
+        for stage[i] in Backend.stages: Rectangle {
+            width: 92px;
+            height: 50px;
+            Rectangle {
+                y: 0;
+                height: i == Backend.active-stage ? 2px : 1px;
+                background: i == Backend.active-stage ? Theme.accent : Theme.line;
+                animate background { duration: 160ms; }
+            }
+
+            VerticalLayout {
+                padding-top: 10px;
+                spacing: 2px;
+                Text {
+                    text: "STAGE \{i + 1}";
+                    font-family: Theme.display;
+                    font-size: 10.5px;
+                    letter-spacing: 1.4px;
+                    color: i == Backend.active-stage ? Theme.accent : Theme.text-3;
+                    animate color { duration: 160ms; }
+                }
+
+                Text {
+                    text: stage.x == stage.y ? stage.x : "\{stage.x}/\{stage.y}";
+                    font-family: Theme.display;
+                    font-size: 15px;
+                    color: i == Backend.active-stage || touch.has-hover ? Theme.text : Theme.text-2;
+                    animate color { duration: Theme.fast; }
+                }
+            }
+
+            touch := TouchArea {
+                mouse-cursor: pointer;
+                clicked => { Backend.activate-stage(i); }
+            }
+        }
+    }
+}
+
+export component PerformancePage {
+    VerticalLayout {
+        spacing: 30px;
+        alignment: start;
+        if Backend.has-stages && !Backend.asleep: Section {
+            title: "SENSITIVITY";
+            action: Backend.stages.length < 5 ? "ADD STAGE" : "";
+            act => { Backend.add-stage(); }
+            Sensitivity {
+                stages: Backend.stages;
+                active: Backend.active-stage;
+                set(i, x, y) => { Backend.set-stage(i, x, y); }
+                activate(i) => { Backend.activate-stage(i); }
+            }
+
+            HorizontalLayout {
+                StageStrip { }
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+
+                VerticalLayout {
+                    alignment: center;
+                    TextButton {
+                        text: "REMOVE STAGE \{Backend.active-stage + 1}";
+                        danger: true;
+                        enabled: Backend.stages.length > 1;
+                        clicked => { Backend.remove-stage(Backend.active-stage); }
+                    }
+                }
+            }
+        }
+
+        if Backend.has-dpi && !Backend.has-stages && !Backend.asleep: Section {
+            title: "SENSITIVITY";
+            Sensitivity {
+                stages: [Backend.dpi];
+                active: 0;
+                set(_, x, y) => { Backend.set-dpi(x, y); }
+            }
+        }
+
+        if Backend.poll-rates.length > 0 && !Backend.asleep: Section {
+            title: "POLLING";
+            Field {
+                label: "Report rate, Hz";
+                divider: false;
+                Steps {
+                    options: Backend.poll-rates;
+                    value: Backend.poll;
+                    selected(rate) => { Backend.set-poll(rate); }
+                }
+            }
+        }
+
+        if Backend.scroll-options.length > 0 && !Backend.asleep: Section {
+            title: "SCROLL WHEEL";
+            for option[i] in Backend.scroll-options: Field {
+                label: option.label;
+                VerticalLayout {
+                    alignment: center;
+                    Toggle {
+                        checked: Backend.scroll-values[i];
+                        toggled(on) => { Backend.set-scroll(option.value, on); }
+                    }
+                }
+            }
+        }
+
+        Section {
+            title: "WINDOWS POINTER";
+            Field {
+                label: "Pointer speed";
+                detail: "For every mouse. Windows starts at 10.";
+                SliderValue {
+                    value: Backend.pointer-speed;
+                    minimum: 1;
+                    maximum: 20;
+                    step: 1;
+                    released(v) => { Backend.set-pointer-speed(v); }
+                }
+            }
+
+            Field {
+                label: "Enhance pointer precision";
+                detail: "Windows' acceleration. Most players turn it off for consistent aim.";
+                VerticalLayout {
+                    alignment: center;
+                    Toggle {
+                        checked: Backend.pointer-precision;
+                        toggled(on) => { Backend.set-pointer-precision(on); }
+                    }
+                }
+            }
+
+            Field {
+                label: "Scroll, lines per notch";
+                Steps {
+                    options: [
+                        { label: "1", value: 1 },
+                        { label: "2", value: 2 },
+                        { label: "3", value: 3 },
+                        { label: "4", value: 4 },
+                        { label: "5", value: 5 },
+                        { label: "6", value: 6 },
+                        { label: "8", value: 8 },
+                        { label: "10", value: 10 },
+                    ];
+                    value: Backend.scroll-lines;
+                    selected(v) => { Backend.set-scroll-lines(v); }
+                }
+            }
+
+            Field {
+                label: "Double-click speed";
+                detail: "The longest gap between two clicks that still counts as one double-click.";
+                divider: false;
+                SliderValue {
+                    value: Backend.double-click;
+                    minimum: 200;
+                    maximum: 900;
+                    step: 50;
+                    unit: " ms";
+                    released(v) => { Backend.set-double-click(v); }
+                }
+            }
+        }
+    }
+}

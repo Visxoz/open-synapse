@@ -1,0 +1,269 @@
+import { Theme, Icons } from "theme.slint";
+import { Backend } from "backend.slint";
+import { Caption, Dot, Gauge, Hairline, Icon, MenuFrame, MenuRow } from "widgets.slint";
+
+/// Text that opens a menu below it.
+component MenuButton {
+    in property <string> text;
+    in property <length> font-size: 13px;
+    in property <bool> caps;
+    in property <length> menu-width: 280px;
+    callback open();
+    min-width: row.preferred-width;
+    horizontal-stretch: 0;
+    row := HorizontalLayout {
+        spacing: 4px;
+        Text {
+            text: root.caps ? root.text.to-uppercase() : root.text;
+            font-family: root.caps ? Theme.display : Theme.body;
+            font-size: root.font-size;
+            letter-spacing: root.caps ? 1.4px : 0;
+            color: Theme.text;
+            vertical-alignment: center;
+        }
+
+        Icon {
+            path: Icons.chevron;
+            size: 16px;
+            color: touch.has-hover ? Theme.text : Theme.text-3;
+        }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.open(); }
+    }
+}
+
+export component TopBar {
+    height: 56px;
+    HorizontalLayout {
+        padding-left: Theme.pad;
+        padding-right: Theme.pad;
+        spacing: 20px;
+        devices := MenuButton {
+            text: Backend.device >= 0 ? Backend.name : Backend.scanned ? "NO MOUSE" : "";
+            caps: true;
+            font-size: 16px;
+            open => { device-menu.show(); }
+        }
+
+        if Backend.device >= 0: HorizontalLayout {
+            spacing: 8px;
+            horizontal-stretch: 0;
+            VerticalLayout {
+                alignment: center;
+                Dot {
+                    on: !Backend.asleep;
+                }
+            }
+
+            Text {
+                text: Backend.asleep ? "Asleep" : Backend.link;
+                font-size: 12.5px;
+                color: Backend.asleep ? Theme.warning : Theme.text-2;
+                vertical-alignment: center;
+            }
+        }
+        if Backend.device >= 0 && Backend.has-battery && !Backend.asleep: HorizontalLayout {
+            spacing: 8px;
+            horizontal-stretch: 0;
+            padding-left: 6px;
+            VerticalLayout {
+                alignment: center;
+                Gauge {
+                    height: 10px;
+                    cells: 5;
+                    cell-width: 4px;
+                    gap: 1.5px;
+                    level: Backend.battery;
+                    charging: Backend.charging;
+                }
+            }
+
+            Text {
+                text: Backend.battery + "%";
+                font-family: Theme.display;
+                font-size: 13px;
+                color: Theme.text-2;
+                vertical-alignment: center;
+            }
+        }
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+
+        Caption {
+            text: "PROFILE";
+            vertical-alignment: center;
+            horizontal-stretch: 0;
+        }
+
+        profiles := MenuButton {
+            text: Backend.profiles.length > 0 ? Backend.profiles[Backend.profile].name : "";
+            open => { profile-menu.show(); }
+        }
+    }
+
+    device-menu := PopupWindow {
+        x: Theme.pad;
+        y: root.height - 6px;
+        width: 300px;
+        MenuFrame { }
+        VerticalLayout {
+            padding-top: 4px;
+            padding-bottom: 4px;
+            if Backend.devices.length == 0: HorizontalLayout {
+                padding-left: 12px;
+                height: 34px;
+                Text {
+                    text: "Plug in a Razer mouse or its receiver.";
+                    font-size: 12.5px;
+                    color: Theme.text-3;
+                    vertical-alignment: center;
+                }
+            }
+            for device[i] in Backend.devices: MenuRow {
+                text: device.name;
+                detail: device.battery >= 0 ? device.battery + "%" : device.link;
+                current: i == Backend.device;
+                clicked => { Backend.select-device(i); }
+            }
+        }
+    }
+
+    profile-menu := PopupWindow {
+        x: root.width - Theme.pad - 240px;
+        y: root.height - 6px;
+        width: 240px;
+        MenuFrame { }
+        VerticalLayout {
+            padding-top: 4px;
+            padding-bottom: 4px;
+            for profile[i] in Backend.profiles: MenuRow {
+                text: profile.name;
+                current: i == Backend.profile;
+                clicked => { Backend.select-profile(i); }
+            }
+        }
+    }
+}
+
+component Tab {
+    in property <string> text;
+    in property <bool> selected;
+    callback clicked();
+    min-width: label.preferred-width;
+    label := Text {
+        text: root.text;
+        font-family: Theme.display;
+        font-size: 12.5px;
+        letter-spacing: 1.5px;
+        color: root.selected || touch.has-hover ? Theme.text : Theme.text-3;
+        animate color { duration: Theme.fast; }
+        vertical-alignment: center;
+    }
+
+    // Grows from the middle when chosen.
+    Rectangle {
+        y: parent.height - 2px;
+        height: 2px;
+        width: root.selected ? parent.width : 0;
+        x: (parent.width - self.width) / 2;
+        background: Theme.accent;
+        animate width {
+            duration: 180ms;
+            easing: ease-out;
+        }
+    }
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.clicked(); }
+    }
+}
+
+/// Pages: 0 performance, 1 lighting, 2 power, 3 device, 4 profiles, 5 settings.
+export component Tabs {
+    in-out property <int> page;
+    in property <bool> has-lighting;
+    in property <bool> has-power;
+    height: 42px;
+    HorizontalLayout {
+        padding-left: Theme.pad;
+        padding-right: Theme.pad;
+        spacing: 30px;
+        Tab {
+            text: "PERFORMANCE";
+            selected: root.page == 0;
+            clicked => { root.page = 0; }
+        }
+
+        if root.has-lighting: Tab {
+            text: "LIGHTING";
+            selected: root.page == 1;
+            clicked => { root.page = 1; }
+        }
+        if root.has-power: Tab {
+            text: "POWER";
+            selected: root.page == 2;
+            clicked => { root.page = 2; }
+        }
+        Tab {
+            text: "DEVICE";
+            selected: root.page == 3;
+            clicked => { root.page = 3; }
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+
+        Tab {
+            text: "PROFILES";
+            selected: root.page == 4;
+            clicked => { root.page = 4; }
+        }
+
+        Tab {
+            text: "SETTINGS";
+            selected: root.page == 5;
+            clicked => { root.page = 5; }
+        }
+    }
+
+    Hairline {
+        y: parent.height - 1px;
+    }
+}
+
+export component StatusBar {
+    property <bool> noticed: Backend.notice != "";
+    height: 28px;
+    Hairline {
+        y: 0;
+    }
+
+    HorizontalLayout {
+        padding-left: Theme.pad;
+        padding-right: Theme.pad;
+        spacing: 10px;
+        Text {
+            text: Backend.device < 0 ? (Backend.scanned ? "NO DEVICE" : "") : Backend.asleep ? "ASLEEP - MOVE THE MOUSE TO WAKE IT" : "1532:" + Backend.product-id + "   FW " + Backend.firmware;
+            font-family: Theme.display;
+            font-size: 11px;
+            letter-spacing: 1.2px;
+            color: Backend.asleep ? Theme.warning : Theme.text-3;
+            vertical-alignment: center;
+            horizontal-stretch: 1;
+        }
+
+        Text {
+            text: root.noticed ? Backend.notice : "RAZER NATIVE " + Backend.version;
+            font-family: root.noticed ? Theme.body : Theme.display;
+            font-size: 11px;
+            letter-spacing: root.noticed ? 0 : 1.2px;
+            color: root.noticed ? Theme.text : Theme.text-3;
+            vertical-alignment: center;
+        }
+    }
+}

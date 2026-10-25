@@ -1,0 +1,16 @@
+[package]
+name = "razer-protocol"
+version = "0.1.0"
+description = "Razer's HID control protocol for mice, without I/O"
+license.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+serde = ["dep:serde"]
+
+[dependencies]
+serde = { workspace = true, optional = true }

@@ -1,0 +1,91 @@
+import { Theme } from "../theme.slint";
+import { Backend } from "../backend.slint";
+import { Field, Section, Toggle, Value } from "../widgets.slint";
+
+component Switch inherits Field {
+    in property <bool> checked;
+    callback toggled(bool);
+    VerticalLayout {
+        alignment: center;
+        Toggle {
+            checked: root.checked;
+            toggled(on) => { root.toggled(on); }
+        }
+    }
+}
+
+export component SettingsPage {
+    VerticalLayout {
+        spacing: 30px;
+        alignment: start;
+        Section {
+            title: "BEHAVIOUR";
+            Switch {
+                label: "Start with Windows";
+                detail: "Opens quietly in the tray when you sign in.";
+                checked: Backend.start-with-windows;
+                toggled(on) => { Backend.set-start-with-windows(on); }
+            }
+
+            Switch {
+                label: "Close to the tray";
+                detail: "Closing the window keeps the app running, so profiles still switch.";
+                checked: Backend.close-to-tray;
+                toggled(on) => { Backend.set-close-to-tray(on); }
+            }
+
+            Switch {
+                label: "Follow linked programs";
+                detail: "Switches profile while a game linked to one is open in front.";
+                checked: Backend.auto-switch;
+                toggled(on) => { Backend.set-auto-switch(on); }
+            }
+
+            Switch {
+                label: "Product pictures";
+                detail: "Downloads a picture of each mouse from Razer, once.";
+                checked: Backend.pictures;
+                toggled(on) => { Backend.set-pictures(on); }
+            }
+
+            Switch {
+                label: "Hardware acceleration";
+                detail: "Draws the window with the graphics card instead of the processor. Uses about four times the memory and rarely looks different. Applies after a restart.";
+                checked: Backend.gpu;
+                divider: false;
+                toggled(on) => { Backend.set-gpu(on); }
+            }
+        }
+
+        Section {
+            title: "ABOUT";
+            Field {
+                label: "Version";
+                Value {
+                    text: Backend.version;
+                }
+            }
+
+            Field {
+                label: "Device data";
+                Value {
+                    text: "OpenRazer";
+                }
+            }
+
+            Field {
+                label: "Licence";
+                divider: false;
+                Value {
+                    text: "GPL-3.0";
+                }
+            }
+
+            Text {
+                text: "Not affiliated with Razer Inc.";
+                font-size: 12px;
+                color: Theme.text-3;
+            }
+        }
+    }
+}

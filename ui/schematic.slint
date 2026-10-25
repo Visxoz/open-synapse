@@ -1,0 +1,302 @@
+import { Theme } from "theme.slint";
+import { ZoneLook } from "backend.slint";
+
+/// LED values, as in the protocol.
+export global Leds {
+    out property <int> matrix: 0;
+    out property <int> scroll: 1;
+    out property <int> logo: 4;
+    out property <int> backlight: 5;
+    out property <int> right: 16;
+    out property <int> left: 17;
+}
+
+/// Effect values, as Rust numbers them.
+export global Kind {
+    out property <int> static: 0;
+    out property <int> breath: 1;
+    out property <int> dual: 2;
+    out property <int> random: 3;
+    out property <int> spectrum: 4;
+    out property <int> wave: 5;
+    out property <int> reactive: 6;
+    out property <int> blinking: 7;
+    out property <int> on: 8;
+    out property <int> off: 9;
+}
+
+/// What a zone shows `t` seconds into its effect.
+export global Preview {
+    pure public function colour(look: ZoneLook, t: float) -> color {
+        return look.kind == Kind.static || look.kind == Kind.reactive ? look.a
+            : look.kind == Kind.breath ? look.a.with-alpha(0.2 + 0.8 * (0.5 - 0.5 * cos(t * 90deg)))
+            : look.kind == Kind.dual ? look.a.mix(look.b, 0.5 - 0.5 * cos(t * 90deg))
+            : look.kind == Kind.random ? hsv(mod(t * 40, 360), 1, 1).with-alpha(0.2 + 0.8 * (0.5 - 0.5 * cos(t * 90deg)))
+            : look.kind == Kind.spectrum || look.kind == Kind.wave ? hsv(mod(t * 60, 360), 1, 1)
+            : look.kind == Kind.blinking ? (mod(t, 1) < 0.5 ? look.a : transparent)
+            : look.kind == Kind.on ? Theme.accent
+            : transparent;
+    }
+    pure public function animated(kind: int) -> bool {
+        return kind == Kind.breath || kind == Kind.dual || kind == Kind.random || kind == Kind.spectrum || kind == Kind.wave || kind == Kind.blinking;
+    }
+}
+
+component Part inherits Path {
+    viewbox-width: 120;
+    viewbox-height: 200;
+    x: 0;
+    y: 0;
+}
+
+/// A leader line from a point on the drawing out to a label on either side.
+component Callout {
+    in property <length> ax;
+    in property <length> ay;
+    /// Where the label begins, or ends when on the left.
+    in property <length> to;
+    in property <bool> left;
+    in property <string> label;
+    in property <bool> strong;
+    property <color> colour: root.strong ? Theme.accent : Theme.line-strong;
+    x: 0;
+    y: 0;
+    opacity: 0;
+    init => { self.opacity = 1; }
+    animate opacity { duration: 160ms; }
+    Rectangle {
+        x: root.ax - 2px;
+        y: root.ay - 2px;
+        width: 4px;
+        height: 4px;
+        background: root.colour;
+        animate background { duration: 140ms; }
+    }
+
+    Rectangle {
+        x: min(root.ax, root.to);
+        y: root.ay;
+        width: abs(root.to - root.ax);
+        height: 1px;
+        background: root.colour;
+        animate background { duration: 140ms; }
+    }
+
+    Text {
+        x: root.left ? root.to - 8px - self.width : root.to + 8px;
+        y: root.ay - self.height / 2;
+        text: root.label;
+        font-family: Theme.display;
+        font-size: 11px;
+        letter-spacing: 1.4px;
+        color: root.strong ? Theme.text : Theme.text-2;
+        animate color { duration: 140ms; }
+    }
+}
+
+/// A mouse drawn in vector lines, standing in for models without a picture.
+component Generic {
+    in property <color> logo;
+    in property <color> wheel;
+    in property <color> sides;
+    in property <color> under;
+    in property <int> selected;
+    property <color> ink: Theme.text-3;
+    property <string> body: "M60 8 C84 8 100 30 101 70 L103 140 C104 176 86 194 60 194 C34 194 16 176 17 140 L19 70 C20 30 36 8 60 8 Z";
+
+    if root.under.alpha > 0: Part {
+        width: root.width;
+        height: root.height;
+        commands: root.body;
+        stroke: root.under.with-alpha(0.6);
+        stroke-width: 8px;
+    }
+
+    Part {
+        width: root.width;
+        height: root.height;
+        commands: root.body;
+        fill: Theme.background;
+        stroke: root.selected == Leds.matrix || root.selected == Leds.backlight ? Theme.accent : Theme.text-2;
+        stroke-width: 1.2px;
+    }
+
+    Part {
+        width: root.width;
+        height: root.height;
+        commands: "M60 8 L60 78 M19.4 80 Q60 90 100.6 80 M15.5 92 L18.6 92 L18.4 106 L15.3 106 Z M15.2 110 L18.3 110 L18.1 124 L15 124 Z";
+        stroke: root.ink;
+        stroke-width: 1px;
+    }
+
+    Part {
+        width: root.width;
+        height: root.height;
+        commands: "M59 26 L61 26 A4 4 0 0 1 65 30 L65 48 A4 4 0 0 1 61 52 L59 52 A4 4 0 0 1 55 48 L55 30 A4 4 0 0 1 59 26 Z";
+        fill: root.wheel;
+        stroke: root.selected == Leds.scroll ? Theme.accent : Theme.text-2;
+        stroke-width: 1px;
+    }
+
+    Part {
+        width: root.width;
+        height: root.height;
+        commands: "M57.5 58 L62.5 58 L63.5 59 L63.5 65 L62.5 66 L57.5 66 L56.5 65 L56.5 59 Z";
+        stroke: root.ink;
+        stroke-width: 1px;
+    }
+
+    Part {
+        width: root.width;
+        height: root.height;
+        commands: "M60 143 A7 7 0 1 1 59.99 143 Z";
+        fill: root.logo;
+        stroke: root.selected == Leds.logo ? Theme.accent : Theme.text-2;
+        stroke-width: 1px;
+    }
+
+    if root.sides.alpha > 0 || root.selected == Leds.left || root.selected == Leds.right: Part {
+        width: root.width;
+        height: root.height;
+        commands: "M101.8 96 L102.6 134 M18.2 96 L17.4 134";
+        stroke: root.sides.alpha > 0 ? root.sides : Theme.accent;
+        stroke-width: 3px;
+    }
+}
+
+/// Light from a zone, behind the line art.
+component Glow inherits Rectangle {
+    in property <color> colour;
+    visible: root.colour.alpha > 0;
+    width: self.height;
+    background: @radial-gradient(circle, root.colour.with-alpha(root.colour.alpha * 0.6) 0%, root.colour.with-alpha(root.colour.alpha * 0.2) 25%, root.colour.with-alpha(0) 48%);
+}
+
+/// The model from above, centred: its picture redrawn as line art when there
+/// is one, otherwise a generic mouse. Zones are lit in their colour,
+/// transparent when dark, and named by callouts on either side.
+export component Schematic {
+    in property <image> outline-art;
+    in property <image> details-art;
+    in property <bool> pending;
+    /// The drawing's height; the component spans its parent's width.
+    in property <length> size: 400px;
+    in property <color> logo: transparent;
+    in property <color> wheel: transparent;
+    in property <color> sides: transparent;
+    in property <color> under: transparent;
+    in property <int> selected: -1;
+    in property <string> wheel-label;
+    in property <string> dpi-label;
+    in property <string> side-label;
+    in property <string> logo-label;
+    in property <string> under-label;
+    property <bool> art: root.outline-art.width > 0;
+    property <length> w: root.size * (root.art ? root.outline-art.width / root.outline-art.height : 0.6);
+    property <length> ox: (root.width - root.w) / 2;
+    property <length> oy: (root.height - root.size) / 2;
+
+    /// A point on the drawing, as fractions of its width and height.
+    function px(f: float) -> length {
+        return root.ox + f * root.w;
+    }
+    function py(f: float) -> length {
+        return root.oy + f * root.size;
+    }
+
+    if !root.art && !root.pending: Generic {
+        x: root.ox;
+        y: root.oy;
+        width: root.w;
+        height: root.size;
+        logo: root.logo;
+        wheel: root.wheel;
+        sides: root.sides;
+        under: root.under;
+        selected: root.selected;
+    }
+    if root.art: Rectangle {
+        x: root.ox;
+        y: root.oy;
+        width: root.w;
+        height: root.size;
+        opacity: 0;
+        init => { self.opacity = 1; }
+        animate opacity { duration: 180ms; }
+        Glow {
+            x: 0.5 * root.w - self.width / 2;
+            y: 0.2 * root.size - self.height / 2;
+            height: 0.5 * root.w;
+            colour: root.wheel;
+        }
+
+        Glow {
+            x: 0.5 * root.w - self.width / 2;
+            y: 0.8 * root.size - self.height / 2;
+            height: 0.7 * root.w;
+            colour: root.logo;
+        }
+
+        for edge in [0, 1]: Glow {
+            x: edge * root.w - self.width / 2;
+            y: 0.5 * root.size - self.height / 2;
+            height: 0.45 * root.w;
+            colour: root.sides;
+        }
+
+        Image {
+            width: 100%;
+            height: 100%;
+            source: root.outline-art;
+            colorize: root.under.alpha > 0 ? root.under : root.selected == Leds.matrix || root.selected == Leds.backlight ? Theme.accent : Theme.text;
+            animate colorize { duration: 160ms; }
+        }
+
+        Image {
+            width: 100%;
+            height: 100%;
+            source: root.details-art;
+            colorize: Theme.text-2;
+        }
+    }
+
+    // The wheel and logo are named on the right; the DPI, sides and
+    // underglow on the left, so the drawing stays centred.
+    if root.wheel-label != "": Callout {
+        ax: root.px(root.art ? 0.56 : 0.542);
+        ay: root.py(0.195);
+        to: root.ox + root.w + 18px;
+        label: root.wheel-label;
+        strong: root.selected == Leds.scroll;
+    }
+    if root.logo-label != "": Callout {
+        ax: root.px(root.art ? 0.6 : 0.558);
+        ay: root.py(root.art ? 0.78 : 0.75);
+        to: root.ox + root.w + 18px;
+        label: root.logo-label;
+        strong: root.selected == Leds.logo;
+    }
+    if root.dpi-label != "": Callout {
+        ax: root.px(0.47);
+        ay: root.py(0.31);
+        to: root.ox - 18px;
+        left: true;
+        label: root.dpi-label;
+    }
+    if root.side-label != "": Callout {
+        ax: root.px(root.art ? 0.03 : 0.15);
+        ay: root.py(root.art ? 0.5 : 0.56);
+        to: root.ox - 18px;
+        left: true;
+        label: root.side-label;
+        strong: root.selected == Leds.left || root.selected == Leds.right;
+    }
+    if root.under-label != "": Callout {
+        ax: root.px(root.art ? 0.28 : 0.2);
+        ay: root.py(root.art ? 0.93 : 0.86);
+        to: root.ox - 18px;
+        left: true;
+        label: root.under-label;
+        strong: root.selected == Leds.matrix || root.selected == Leds.backlight;
+    }
+}
