@@ -2,7 +2,7 @@
 
 use std::{fmt::Write, rc::Rc};
 
-use razer_protocol::{DpiRange, EffectParams, Features, Led, Link, Model as Mouse, Power, ScrollSetting};
+use razer_protocol::{Dpi, DpiRange, EffectParams, Features, Led, Link, Model as Mouse, Power, ScrollSetting};
 use slint::{Color, ComponentHandle, Model, ModelRc, SharedString, VecModel};
 
 use super::{App, State, lighting::colour, pictures::Picture};
@@ -33,6 +33,15 @@ fn choice(label: impl Into<SharedString>, value: i32) -> Choice {
     Choice {
         label: label.into(),
         value,
+    }
+}
+
+/// A DPI as "1600", or "1600/800" when the axes differ.
+fn dpi_label(d: Dpi) -> String {
+    if d.x == d.y {
+        d.x.to_string()
+    } else {
+        format!("{}/{}", d.x, d.y)
     }
 }
 
@@ -136,7 +145,7 @@ impl App {
         let ui = self.ui();
         let b = ui.global::<Backend>();
         let st = self.state.borrow();
-        let items = st
+        let items: Vec<DeviceItem> = st
             .devices
             .iter()
             .map(|d| DeviceItem {
@@ -150,8 +159,12 @@ impl App {
                 charging: d.state.charging.unwrap_or(false),
             })
             .collect();
+        let selected = if st.devices.is_empty() { -1 } else { st.selected as i32 };
+        rows(self.panel.get_devices(), items.clone(), |m| self.panel.set_devices(m));
+        self.panel.set_device(selected);
+        self.panel.set_scanned(b.get_scanned());
         rows(b.get_devices(), items, |m| b.set_devices(m));
-        b.set_device(if st.devices.is_empty() { -1 } else { st.selected as i32 });
+        b.set_device(selected);
 
         let mut tooltip = String::from("Open Synapse");
         for d in &st.devices {
@@ -224,14 +237,15 @@ impl App {
             rows(b.get_stages(), items, |v| b.set_stages(v));
             b.set_active_stage(stages.active as i32);
         }
-        let rates = m
+        let rates: Vec<Choice> = m
             .poll
             .rates()
             .iter()
             .map(|&r| choice(r.to_string(), r.into()))
             .collect();
-        rows(b.get_poll_rates(), rates, |v| b.set_poll_rates(v));
+        rows(b.get_poll_rates(), rates.clone(), |v| b.set_poll_rates(v));
         b.set_poll(s.poll.map_or(0, i32::from));
+        self.refresh_panel(device, rates);
 
         let scroll: Vec<_> = ScrollSetting::ALL
             .into_iter()
@@ -339,14 +353,16 @@ impl App {
         }
         b.set_profile(st.profiles.active as i32);
 
-        let names = st
+        let names: Vec<SharedString> = st
             .profiles
             .list
             .iter()
             .map(|p| SharedString::from(p.name.as_str()))
             .collect();
-        rows(self.tray.get_profiles(), names, |v| self.tray.set_profiles(v));
+        rows(self.tray.get_profiles(), names.clone(), |v| self.tray.set_profiles(v));
         self.tray.set_profile(st.profiles.active as i32);
+        rows(self.panel.get_profiles(), names, |v| self.panel.set_profiles(v));
+        self.panel.set_profile(st.profiles.active as i32);
     }
 
     /// Windows' pointer settings, which other programs may change too.
@@ -381,5 +397,32 @@ impl App {
             });
             b.set_update_status(status.into());
         }
+    }
+}
+
+impl App {
+    /// The selected device as the tray panel shows it, with the polling
+    /// rates the window already built.
+    fn refresh_panel(&self, device: &Info, rates: Vec<Choice>) {
+        let (m, s, p) = (device.model, &device.state, &self.panel);
+        p.set_name(display_name(m).into());
+        p.set_link(link_label(m.link).into());
+        p.set_asleep(!s.awake);
+        p.set_has_battery(m.power.contains(Power::BATTERY));
+        p.set_battery(s.battery.map_or(0, i32::from));
+        p.set_charging(s.charging.unwrap_or(false));
+        let stages = s.stages.as_ref().map_or_else(Vec::new, |stages| {
+            stages
+                .stages
+                .iter()
+                .enumerate()
+                .map(|(i, &d)| choice(dpi_label(d), i as i32))
+                .collect()
+        });
+        rows(p.get_stages(), stages, |v| p.set_stages(v));
+        p.set_active_stage(s.stages.as_ref().map_or(0, |stages| stages.active as i32));
+        p.set_dpi(s.dpi.map_or_else(String::new, dpi_label).into());
+        rows(p.get_poll_rates(), rates, |v| p.set_poll_rates(v));
+        p.set_poll(s.poll.map_or(0, i32::from));
     }
 }

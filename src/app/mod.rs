@@ -4,13 +4,14 @@
 mod bind;
 mod devices;
 mod lighting;
+mod panel;
 mod pictures;
 mod profiles;
 mod updates;
 mod view;
 
 use std::{
-    cell::RefCell,
+    cell::{Cell, RefCell},
     rc::{Rc, Weak},
     time::{Duration, Instant},
 };
@@ -19,12 +20,12 @@ use razer_protocol::EffectParams;
 use slint::{ComponentHandle, Timer, TimerMode};
 
 use crate::{
-    AppWindow, Tray,
+    AppWindow, Tray, TrayPanel,
     profiles::Profiles,
     settings::Settings,
     update::Update,
     win::programs::ForegroundHook,
-    worker::{Event, Info, Request, Worker},
+    worker::{Event, Info, Worker},
 };
 
 const SAVE_AFTER: Duration = Duration::from_millis(800);
@@ -69,6 +70,11 @@ struct State {
 pub struct App {
     ui: slint::Weak<AppWindow>,
     tray: Tray,
+    panel: TrayPanel,
+    /// When the panel last closed, so the click that closed it does not reopen it.
+    panel_hidden: Cell<Option<Instant>>,
+    /// The panel has been drawn since it was last shown.
+    panel_drawn: Cell<bool>,
     worker: Worker,
     state: RefCell<State>,
     save_timer: Timer,
@@ -78,7 +84,7 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(ui: &AppWindow, tray: Tray, settings: Settings) -> Rc<Self> {
+    pub fn new(ui: &AppWindow, tray: Tray, panel: TrayPanel, settings: Settings) -> Rc<Self> {
         let profiles = Profiles::load();
         let worker = Worker::spawn(|event| {
             let _ = slint::invoke_from_event_loop(move || with_app(|app| app.on_event(event)));
@@ -86,6 +92,9 @@ impl App {
         let app = Rc::new(Self {
             ui: ui.as_weak(),
             tray,
+            panel,
+            panel_hidden: Cell::new(None),
+            panel_drawn: Cell::new(false),
             worker,
             state: RefCell::new(State {
                 chosen: profiles.active,
@@ -106,6 +115,7 @@ impl App {
         });
         CURRENT.set(Rc::downgrade(&app));
         app.bind(ui);
+        app.watch_panel();
         app.watch_foreground();
         app.schedule_update_checks();
         app.refresh();
@@ -122,7 +132,10 @@ impl App {
             Event::Disconnected(id) => self.disconnected(id),
             Event::Changed(info) => self.changed(info),
             Event::Failed(message) => self.notify(&message),
-            Event::Scanned => self.ui().global::<crate::Backend>().set_scanned(true),
+            Event::Scanned => {
+                self.ui().global::<crate::Backend>().set_scanned(true);
+                self.panel.set_scanned(true);
+            }
         }
     }
 
@@ -156,14 +169,14 @@ impl App {
         if ui.show().is_ok() {
             ui.window().set_minimized(false);
             self.refresh_pointer();
-            self.worker.send(Request::Shown(true));
+            self.sync_shown();
             style_title_bar(20);
         }
     }
 
     pub fn hide(&self) {
         let _ = self.ui().hide();
-        self.worker.send(Request::Shown(false));
+        self.sync_shown();
     }
 
     pub fn quit(&self) {

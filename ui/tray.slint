@@ -4,10 +4,12 @@ export component Tray inherits SystemTrayIcon {
     tooltip: root.status;
     in property <[string]> profiles;
     in property <int> profile;
+    /// A click on the icon, which opens the panel.
+    callback panel();
     callback open();
     callback choose(int);
     callback quit();
-    clicked => { root.open(); }
+    clicked => { root.panel(); }
 
     Menu {
         MenuItem {

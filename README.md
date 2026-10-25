@@ -1,136 +1,168 @@
 <div align="center">
 
-<img src="ui/assets/icon.png" width="96" alt="Open Synapse icon">
+<img src="ui/assets/icon.png" width="88" alt="">
 
 # Open Synapse
 
-**Everything Synapse does for your Razer mouse, in a 17 MB app that stays out of your way.**
+**Your Razer mouse, without Razer Synapse.**
+
+DPI, polling rate, lighting, battery and profiles in one small Windows app.<br>
+No account, no sign-in, no services running in the background.
 
 [![CI](https://github.com/Visxoz/open-synapse/actions/workflows/ci.yml/badge.svg)](https://github.com/Visxoz/open-synapse/actions/workflows/ci.yml)
-[![Windows](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D6?logo=windows&logoColor=white)](#download)
-[![Built with Rust](https://img.shields.io/badge/built%20with-Rust%20%2B%20Slint-dea584?logo=rust&logoColor=white)](#building-from-source)
-[![Licence: GPL-3.0](https://img.shields.io/badge/licence-GPL--3.0-blue.svg)](LICENSE)
-[![116 mice supported](https://img.shields.io/badge/mice%20supported-116-44d62c)](#supported-mice)
+[![Windows 10 and 11](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6?logo=windows&logoColor=white)](#download)
+[![116 mice](https://img.shields.io/badge/mice-116%20models-44d62c)](#supported-mice)
+[![GPL-3.0](https://img.shields.io/badge/licence-GPL--3.0-blue.svg)](LICENSE)
 
 <br>
 
-<img src="docs/screenshots/performance.png" width="860" alt="The Performance page: DPI stages on a ruler, polling rate and Windows pointer settings, beside a line drawing of a Viper V4 Pro">
+<img src="docs/screenshots/performance.png" width="880" alt="The Performance page: DPI stages on a ruler, polling rate and Windows pointer settings beside a line drawing of a Viper V4 Pro">
 
 </div>
 
----
+<br>
 
-Open Synapse is a small, fast control panel for Razer mice on Windows. Set your DPI, polling rate, lighting, battery options and profiles without installing Razer Synapse.
+Razer Synapse is a lot of software for what most people actually want from it: set a DPI, pick a colour, maybe swap profiles when a game opens. Open Synapse does those things and stops there. It is a single 17 MB executable that opens instantly, idles in the tray at around 35 MB of memory, and keeps your settings in a plain file on your own PC.
 
-No account. No sign-in. No background services or updaters. One file you can run, and delete, whenever you like.
+It speaks to the mouse directly, the same way Synapse does, so settings land on the hardware itself and stay there when the app is closed. Every model that works with OpenRazer on Linux works here too, from the 2012 Naga to the Viper V4 Pro.
+
+<br>
+
+## A quick tour
 
 <table>
-  <tr>
-    <td><img src="docs/screenshots/lighting.png" alt="The Lighting page: zones, effects, a colour picker and a live preview on the mouse drawing"></td>
-    <td><img src="docs/screenshots/power.png" alt="The Power page: battery level, sleep timer, low-power threshold and receiver lights"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>Lighting</sub></td>
-    <td align="center"><sub>Power</sub></td>
-  </tr>
-  <tr>
-    <td><img src="docs/screenshots/profiles.png" alt="The Profiles page: named profiles linked to programs"></td>
-    <td><img src="docs/screenshots/settings.png" alt="The Settings page: start with Windows, close to tray, follow linked programs, product pictures, hardware acceleration"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>Profiles</sub></td>
-    <td align="center"><sub>Settings</sub></td>
-  </tr>
+<tr>
+<td width="55%"><img src="docs/screenshots/lighting.png" alt="The Lighting page: zones, effects, a colour picker and a live preview on the mouse drawing"></td>
+<td width="45%" valign="top">
+<h3>Lighting</h3>
+<p>Pick a zone, pick an effect, pick a colour. Static, breathing, spectrum, wave, reactive and the rest, with brightness on a fader. The drawing on the left is your actual mouse, traced from Razer's own render, and it previews the effect as you choose it.</p>
+</td>
+</tr>
+<tr>
+<td width="45%" valign="top">
+<h3>Power</h3>
+<p>Battery level and charging state, in the window and in the tray icon. Set how long the mouse waits before it sleeps and where low-power mode kicks in. If you have a HyperPolling receiver, choose what its lights show.</p>
+</td>
+<td width="55%"><img src="docs/screenshots/power.png" alt="The Power page: battery level, sleep timer, low-power threshold and receiver lights"></td>
+</tr>
+<tr>
+<td width="55%"><img src="docs/screenshots/profiles.png" alt="The Profiles page: named profiles linked to programs"></td>
+<td width="45%" valign="top">
+<h3>Profiles</h3>
+<p>Keep one setup for work and another for each game. Link a profile to a program and it takes over whenever that program is in front, then hands back when you alt-tab away. You can also switch by hand from the tray menu.</p>
+</td>
+</tr>
+<tr>
+<td width="45%" valign="top">
+<h3>Out of the way</h3>
+<p>Start with Windows, close to the tray, and forget it is there. Mice show up as you plug them in. A wireless mouse that has gone to sleep is shown asleep until you nudge it, rather than as missing.</p>
+</td>
+<td width="55%"><img src="docs/screenshots/settings.png" alt="The Settings page: start with Windows, close to tray, follow linked programs, product pictures, hardware acceleration"></td>
+</tr>
 </table>
 
-## Why people switch
+### And on the Performance page
 
-- **Light.** About 35 MB of memory and a near-zero share of your processor while it sits in the tray. Synapse and its helper services take several times that.
-- **Instant.** Opens in a blink. Settings apply the moment you change them.
-- **Yours.** Settings live in a plain file on your PC, not in the cloud. Nothing phones home.
-- **Honest.** Free and open source. You can read every line of what runs on your machine.
+Up to five DPI stages on a ruler you can drag, with separate horizontal and vertical values if you want them. Polling rate up to 8000 Hz on HyperPolling mice. Scroll wheel modes on mice that have them. Windows' own pointer settings sit on the same page, so pointer speed, acceleration, scroll lines and double-click speed are one click away instead of buried in Control Panel.
 
-## What it does
-
-### Performance
-- Up to five DPI stages, with separate horizontal and vertical values if you want them.
-- A DPI ruler you can drag, or type an exact number.
-- Polling rate, up to 8000 Hz on HyperPolling mice.
-- Scroll wheel modes on mice that have them: free spin, acceleration and Smart Reel.
-- Windows' own pointer settings in the same place: pointer speed, "enhance pointer precision", scroll lines and double-click speed.
-
-### Lighting
-- Static, breathing, spectrum, wave, reactive, blinking and more, chosen per zone.
-- A colour picker with presets, plus brightness.
-- A live preview on a drawing of your actual mouse.
-
-### Power
-- Battery level and charging state, in the window and in the tray.
-- Sleep timer and low-power threshold.
-- What the lights on your HyperPolling receiver show.
-
-### Profiles
-- Keep different setups for work, play or particular games.
-- Link a profile to a program and it switches on by itself when that program is in front, and back when it is not.
-- Switch profiles from the tray without opening the window.
-
-### Everyday details
-- Lives in the notification area and can start with Windows.
-- Mice appear as you plug them in. A wireless mouse that is asleep is shown as asleep until you nudge it.
-- Each mouse is drawn from Razer's own picture of it, traced into line art that matches the app.
+<br>
 
 ## Download
 
-1. From the [Releases](https://github.com/Visxoz/open-synapse/releases) page, grab either:
-   - `open-synapse_<version>_x64-setup.exe` to install it for your account, with a Start menu entry. No admin rights needed.
-   - `open-synapse_<version>_x64-portable.exe` to run from anywhere, with nothing installed.
-2. **Close Razer Synapse first** if you have it. Synapse keeps re-applying its own settings to the mouse.
+Grab the latest build from the [Releases](https://github.com/Visxoz/open-synapse/releases) page. There are two flavours:
 
-Windows may show a SmartScreen warning the first time, because the app is not code-signed. Choose **More info** and then **Run anyway**.
+| File | What it does |
+| --- | --- |
+| `open-synapse_x.y.z_x64-setup.exe` | Installs for your account with a Start menu entry. No admin rights needed. |
+| `open-synapse_x.y.z_x64-portable.exe` | Runs from wherever you put it. Nothing is installed. |
 
-Either copy checks GitHub for new versions and updates itself from Settings, after checking the download against the release's SHA-256 sums.
+> [!IMPORTANT]
+> Close Razer Synapse before you start, if you have it. Synapse keeps pushing its own settings to the mouse and the two will fight.
 
-To remove an installed copy, use **Settings ▸ Apps** in Windows; for the portable one, delete the executable. Your settings are in `%APPDATA%\open-synapse` if you want those gone too.
+Windows may show a SmartScreen warning the first time because the app is not code-signed. Click **More info**, then **Run anyway**.
+
+Both flavours check GitHub for new versions and can update themselves from Settings. Each download is checked against the release's SHA-256 sums before anything is written to disk.
+
+<br>
 
 ## Supported mice
 
-116 models, from the 2012 Naga to the Viper V4 Pro, across these families:
+116 models across every family Razer has made since 2012.
 
-| Family | Models | Family | Models |
-| --- | ---: | --- | ---: |
-| DeathAdder | 24 | Abyssus | 6 |
-| Naga | 18 | Lancehead | 5 |
-| Basilisk | 17 | Cobra | 5 |
-| Viper | 16 | Orochi | 4 |
-| Mamba | 8 | Atheris, Diamondback, Imperator, Ouroboros, Taipan | 1 each |
-| Pro Click | 7 | HyperPolling Wireless Dongle | 1 |
+<details>
+<summary>Show the breakdown</summary>
+<br>
 
-Device data comes from the [OpenRazer](https://openrazer.github.io) project. If your mouse works with OpenRazer on Linux, it almost certainly works here.
+| Family | Models | | Family | Models |
+| --- | ---: | --- | --- | ---: |
+| DeathAdder | 24 | | Abyssus | 6 |
+| Naga | 18 | | Lancehead | 5 |
+| Basilisk | 17 | | Cobra | 5 |
+| Viper | 16 | | Orochi | 4 |
+| Mamba | 8 | | Atheris, Diamondback, Imperator, Ouroboros, Taipan | 1 each |
+| Pro Click | 7 | | HyperPolling Wireless Dongle | 1 |
 
-## Tips
+</details>
 
-- **Your own picture.** Put a top-down PNG of your mouse, named after its product ID (for example `00e6.png`), in `%APPDATA%\open-synapse\images`. The app traces it into line art on the next start. The product ID is shown on the Device page.
-- **Starting hidden.** Turn on *Start with Windows* in Settings and the app opens quietly in the tray at sign-in.
-- **Two copies.** Launching the app while it is already running just brings the existing window to the front.
+The device data comes from [OpenRazer](https://openrazer.github.io). If your mouse works there, it works here.
 
-## Not included
+<br>
 
-Button remapping and macros, firmware updates, Chroma game integrations, and anything that is not a mouse: keyboards, headsets, mouse mats and so on.
+## Questions you might have
 
-## Building from source
+<details>
+<summary><b>Does it do button remapping or macros?</b></summary>
+<br>
+Not yet. The same goes for firmware updates, Chroma game integrations, and anything that is not a mouse. Keyboards, headsets and mats are out of scope.
+</details>
 
-You need Rust 1.88 or newer with the MSVC toolchain.
+<details>
+<summary><b>Where do my settings live?</b></summary>
+<br>
+In <code>%APPDATA%\open-synapse</code>, as two JSON files you can open and read. Delete the folder and the app forgets everything.
+</details>
+
+<details>
+<summary><b>How do I uninstall it?</b></summary>
+<br>
+The installed version goes through <b>Settings ▸ Apps</b> like any other program. For the portable one, delete the executable. Neither touches the mouse's own memory, so your DPI and lighting stay as you left them.
+</details>
+
+<details>
+<summary><b>Can I use my own picture of the mouse?</b></summary>
+<br>
+Yes. Drop a top-down PNG into <code>%APPDATA%\open-synapse\images</code>, named after the product ID shown on the Device page (for example <code>00e6.png</code>). The app traces it into line art on the next start.
+</details>
+
+<details>
+<summary><b>I opened it twice and only one window appeared.</b></summary>
+<br>
+That is on purpose. Launching the app while it is already running brings the existing window to the front.
+</details>
+
+<br>
+
+## Building it yourself
+
+You need a Rust toolchain (1.88 or newer, MSVC). Then:
 
 ```powershell
 cargo build --release
 ```
 
-The executable is `target\release\open-synapse.exe`. To build the installer as well, install [Inno Setup 6](https://jrsoftware.org/isinfo.php) and run `ISCC /DAppVersion=0.1.0 installer\open-synapse.iss`, which writes it to `dist\`.
+The executable lands in `target\release\open-synapse.exe`. For the installer as well, install [Inno Setup 6](https://jrsoftware.org/isinfo.php) and run:
 
-## Credits
+```powershell
+ISCC /DAppVersion=0.1.0 installer\open-synapse.iss
+```
 
-- [OpenRazer](https://openrazer.github.io) for the device protocol and the table of supported mice.
-- [Slint](https://slint.dev) for the UI toolkit.
+It is written in Rust with a [Slint](https://slint.dev) interface, and the whole thing is about 17 MB.
+
+<br>
+
+## Thanks
+
+[OpenRazer](https://openrazer.github.io) worked out the protocol and catalogued the hardware. This app would not exist without that work.
 
 ## Licence
 

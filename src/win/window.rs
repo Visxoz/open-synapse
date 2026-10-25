@@ -1,8 +1,17 @@
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
-use windows_sys::Win32::{
-    Foundation::HWND,
-    Graphics::Dwm::{DWMWA_CAPTION_COLOR, DWMWA_USE_IMMERSIVE_DARK_MODE, DwmSetWindowAttribute},
-    UI::WindowsAndMessaging::SetForegroundWindow,
+use windows_sys::{
+    Win32::{
+        Foundation::{HWND, POINT, RECT},
+        Graphics::{
+            Dwm::{DWMWA_CAPTION_COLOR, DWMWA_USE_IMMERSIVE_DARK_MODE, DwmSetWindowAttribute},
+            Gdi::{GetMonitorInfoW, MONITOR_DEFAULTTONEAREST, MONITORINFO, MonitorFromPoint},
+        },
+        UI::{
+            HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI},
+            WindowsAndMessaging::{FindWindowW, GetCursorPos, GetWindowRect, IsWindowVisible, SetForegroundWindow},
+        },
+    },
+    core::w,
 };
 
 pub fn hwnd(window: &slint::Window) -> Option<HWND> {
@@ -36,4 +45,113 @@ pub fn style_title_bar(hwnd: HWND, background: slint::Color) {
 pub fn bring_to_front(hwnd: HWND) {
     // SAFETY: `hwnd` is a live window.
     unsafe { SetForegroundWindow(hwnd) };
+}
+
+const EMPTY: RECT = RECT {
+    left: 0,
+    top: 0,
+    right: 0,
+    bottom: 0,
+};
+
+/// The edge of the screen the taskbar sits on.
+#[derive(Clone, Copy)]
+enum Edge {
+    Bottom,
+    Top,
+    Left,
+    Right,
+}
+
+impl Edge {
+    /// The taskbar is on the edge where the work area falls short of the
+    /// screen; none when it is hidden.
+    fn of_taskbar(screen: &RECT, work: &RECT) -> Option<Self> {
+        if work.bottom < screen.bottom {
+            Some(Self::Bottom)
+        } else if work.top > screen.top {
+            Some(Self::Top)
+        } else if work.left > screen.left {
+            Some(Self::Left)
+        } else if work.right < screen.right {
+            Some(Self::Right)
+        } else {
+            None
+        }
+    }
+}
+
+/// Where the taskbar's hidden-icons flyout is while it is open: it stays
+/// open after a click on an icon in it.
+fn overflow_flyout() -> Option<RECT> {
+    // Windows 11's class, then Windows 10's.
+    [
+        w!("TopLevelWindowForOverflowXamlIsland"),
+        w!("NotifyIconOverflowWindow"),
+    ]
+    .into_iter()
+    .find_map(|class| {
+        let mut rect = EMPTY;
+        // SAFETY: `class` is a NUL-terminated literal and `rect` outlives
+        // the call; a null handle, when the window is missing, fails both
+        // checks.
+        let open = unsafe {
+            let hwnd = FindWindowW(class, std::ptr::null());
+            IsWindowVisible(hwnd) != 0 && GetWindowRect(hwnd, &mut rect) != 0
+        };
+        (open && rect.right > rect.left && rect.bottom > rect.top).then_some(rect)
+    })
+}
+
+/// Where a pop-up of `width` by `height` logical pixels goes, in physical
+/// pixels: in the corner at the tray's end of the taskbar on the pointer's
+/// screen, as Windows' own flyouts do, past the hidden-icons flyout while
+/// that is open, or by the pointer when no taskbar is showing.
+pub fn popup_origin(width: f32, height: f32) -> Option<(i32, i32)> {
+    let mut cursor = POINT { x: 0, y: 0 };
+    // SAFETY: `cursor` outlives the call.
+    if unsafe { GetCursorPos(&mut cursor) } == 0 {
+        return None;
+    }
+    // SAFETY: any point has a nearest monitor.
+    let monitor = unsafe { MonitorFromPoint(cursor, MONITOR_DEFAULTTONEAREST) };
+    let mut info = MONITORINFO {
+        cbSize: size_of::<MONITORINFO>() as u32,
+        rcMonitor: EMPTY,
+        rcWork: EMPTY,
+        dwFlags: 0,
+    };
+    // SAFETY: `info` carries its size and outlives the call.
+    if unsafe { GetMonitorInfoW(monitor, &mut info) } == 0 {
+        return None;
+    }
+    let (mut dpi, mut dpi_y) = (96u32, 96u32);
+    // SAFETY: both out-pointers outlive the call.
+    unsafe { GetDpiForMonitor(monitor, MDT_EFFECTIVE_DPI, &mut dpi, &mut dpi_y) };
+    let scale = dpi.max(1) as f32 / 96.0;
+    let px = |logical: f32| (logical * scale).round() as i32;
+    let (w, h, margin) = (px(width), px(height), px(12.0));
+
+    // The free area is the work area less the flyout, which hugs the taskbar.
+    let edge = Edge::of_taskbar(&info.rcMonitor, &info.rcWork);
+    let mut free = info.rcWork;
+    if let Some(edge) = edge
+        && let Some(f) = overflow_flyout()
+    {
+        match edge {
+            Edge::Bottom => free.bottom = free.bottom.min(f.top),
+            Edge::Top => free.top = free.top.max(f.bottom),
+            Edge::Left => free.left = free.left.max(f.right),
+            Edge::Right => free.right = free.right.min(f.left),
+        }
+    }
+    let (left, right) = (free.left + margin, free.right - w - margin);
+    let (top, bottom) = (free.top + margin, free.bottom - h - margin);
+    let (x, y) = match edge {
+        Some(Edge::Bottom | Edge::Right) => (right, bottom),
+        Some(Edge::Top) => (right, top),
+        Some(Edge::Left) => (left, bottom),
+        None => (cursor.x - w / 2, cursor.y - h / 2),
+    };
+    Some((x.clamp(left, right.max(left)), y.clamp(top, bottom.max(top))))
 }

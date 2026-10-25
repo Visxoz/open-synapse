@@ -10,6 +10,12 @@ mod update;
 mod win;
 mod worker;
 
+use std::cell::Cell;
+
+use i_slint_backend_winit::winit::{
+    platform::windows::{CornerPreference, WindowAttributesExtWindows},
+    window::WindowAttributes,
+};
 use slint::{CloseRequestResponse, ComponentHandle, PhysicalPosition, PhysicalSize};
 
 use crate::{app::App, settings::WindowGeometry};
@@ -18,6 +24,21 @@ slint::include_modules!();
 
 /// The window's background, matched by the title bar.
 const BACKGROUND: slint::Color = slint::Color::from_rgb_u8(0x0b, 0x0b, 0x0e);
+
+thread_local! {
+    /// Set just before the tray panel is made, so the backend builds its
+    /// window as a pop-up rather than another app window.
+    static POPUP_NEXT: Cell<bool> = const { Cell::new(false) };
+}
+
+/// A pop-up: no frame, square corners and no button in the taskbar.
+fn popup_attributes(attributes: WindowAttributes) -> WindowAttributes {
+    attributes
+        .with_decorations(false)
+        .with_resizable(false)
+        .with_skip_taskbar(true)
+        .with_corner_preference(CornerPreference::DoNotRound)
+}
 
 fn restore_geometry(ui: &AppWindow, geometry: Option<WindowGeometry>) {
     let Some(g) = geometry else { return };
@@ -59,11 +80,23 @@ fn select_renderer(gpu: bool) {
         // SAFETY: called first thing in `main`, before any other thread starts.
         unsafe { std::env::set_var("WGPU_BACKEND", "dx12") };
     }
-    if std::env::var_os("SLINT_BACKEND").is_none()
-        && let Err(e) = slint::BackendSelector::new()
-            .backend_name("winit".into())
-            .renderer_name(if gpu { "skia" } else { "skia-software" }.into())
-            .select()
+    // Slint honours the variable itself, with no pop-up attributes.
+    if std::env::var_os("SLINT_BACKEND").is_some() {
+        return;
+    }
+    let backend = i_slint_backend_winit::Backend::builder()
+        .with_renderer_name(if gpu { "skia" } else { "skia-software" })
+        .with_window_attributes_hook(|attributes| {
+            if POPUP_NEXT.take() {
+                popup_attributes(attributes)
+            } else {
+                attributes
+            }
+        })
+        .build();
+    if let Err(e) = backend
+        .map_err(|e| e.to_string())
+        .and_then(|b| slint::platform::set_platform(Box::new(b)).map_err(|e| e.to_string()))
     {
         log::warn!("could not select the renderer: {e}");
     }
@@ -80,8 +113,11 @@ fn main() {
 
     let ui = AppWindow::new().expect("window opens");
     let tray = Tray::new().expect("tray icon is created");
+    POPUP_NEXT.set(true);
+    let panel = TrayPanel::new().expect("tray panel is created");
+    POPUP_NEXT.set(false);
     restore_geometry(&ui, settings.window);
-    let app = App::new(&ui, tray, settings);
+    let app = App::new(&ui, tray, panel, settings);
     instance.on_activate(|| drop(slint::invoke_from_event_loop(app::activate)));
 
     let weak = ui.as_weak();

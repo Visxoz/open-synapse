@@ -152,6 +152,9 @@ export component Field {
 export component Steps {
     in property <[Choice]> options;
     in property <int> value;
+    /// The least width of an option, and the room around a wider label.
+    in property <length> option-width: 44px;
+    in property <length> option-pad: 22px;
     callback selected(int);
     height: 34px;
     Rectangle {
@@ -163,7 +166,7 @@ export component Steps {
     HorizontalLayout {
         alignment: start;
         for option in root.options: Rectangle {
-            min-width: max(44px, label.preferred-width + 22px);
+            min-width: max(root.option-width, label.preferred-width + root.option-pad);
             label := Text {
                 text: option.label;
                 font-family: Theme.display;

@@ -3080,6 +3080,7 @@ dependencies = [
 name = "open-synapse"
 version = "0.1.0"
 dependencies = [
+ "i-slint-backend-winit",
  "log",
  "png",
  "raw-window-handle",
@@ -3964,6 +3965,7 @@ dependencies = [
  "const-field-offset",
  "i-slint-backend-linuxkms",
  "i-slint-backend-selector",
+ "i-slint-backend-winit",
  "i-slint-common",
  "i-slint-core",
  "i-slint-core-macros",

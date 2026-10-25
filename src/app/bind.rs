@@ -141,9 +141,24 @@ impl App {
         });
         on!(b, on_install_update, |app| app.install_update());
 
+        on!(self.tray, on_panel, |app| app.toggle_panel());
         on!(self.tray, on_open, |app| app.show());
         on!(self.tray, on_choose, |app, i| app.activate_profile(i as usize, true));
         on!(self.tray, on_quit, |app| app.quit());
+
+        on!(self.panel, on_select_device, |app, i| app.select_device(i as usize));
+        on!(self.panel, on_activate_stage, |app, i| app
+            .edit_stages(|s, _| s.active = i as usize));
+        on!(self.panel, on_set_poll, |app, rate| app
+            .change(Setting::Poll(u16_of(rate))));
+        on!(self.panel, on_select_profile, |app, i| app
+            .activate_profile(i as usize, true));
+        on!(self.panel, on_open, |app| {
+            app.hide_panel();
+            app.show();
+        });
+        on!(self.panel, on_quit, |app| app.quit());
+        on!(self.panel, on_dismiss, |app| app.hide_panel());
     }
 
     fn set_dongle_led(&self, index: usize, mode: u8) {
