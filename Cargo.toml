@@ -21,7 +21,7 @@ undocumented_unsafe_blocks = "deny"
 
 [package]
 name = "open-synapse"
-version = "0.1.0"
+version = "0.1.1"
 description = "A native control panel for Razer mice"
 repository = "https://github.com/Visxoz/open-synapse"
 # The device tables are derived from OpenRazer, which is GPL-2.0-or-later.

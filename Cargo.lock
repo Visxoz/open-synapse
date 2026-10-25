@@ -3078,7 +3078,7 @@ dependencies = [
 
 [[package]]
 name = "open-synapse"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "i-slint-backend-winit",
  "log",
