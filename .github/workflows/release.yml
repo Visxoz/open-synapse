@@ -24,7 +24,7 @@ jobs:
     name: Build and publish
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Check the tag against Cargo.toml
         if: github.event_name == 'push'
@@ -58,7 +58,7 @@ jobs:
           "name=$name" >> $env:GITHUB_OUTPUT
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.package.outputs.name }}
           path: |
@@ -68,7 +68,7 @@ jobs:
 
       - name: Create draft release
         if: github.event_name == 'push'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: Razer Native ${{ github.ref_name }}
           draft: true

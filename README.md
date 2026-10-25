@@ -12,6 +12,10 @@
 [![Licence: GPL-3.0](https://img.shields.io/badge/licence-GPL--3.0-blue.svg)](LICENSE)
 [![116 mice supported](https://img.shields.io/badge/mice%20supported-116-44d62c)](#supported-mice)
 
+<br>
+
+<img src="docs/screenshots/performance.png" width="860" alt="The Performance page: DPI stages on a ruler, polling rate and Windows pointer settings, beside a line drawing of a Viper V4 Pro">
+
 </div>
 
 ---
@@ -19,6 +23,25 @@
 Razer Native is a small, fast control panel for Razer mice on Windows. Set your DPI, polling rate, lighting, battery options and profiles without installing Razer Synapse.
 
 No account. No sign-in. No background services or updaters. One file you can run, and delete, whenever you like.
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/lighting.png" alt="The Lighting page: zones, effects, a colour picker and a live preview on the mouse drawing"></td>
+    <td><img src="docs/screenshots/power.png" alt="The Power page: battery level, sleep timer, low-power threshold and receiver lights"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Lighting</sub></td>
+    <td align="center"><sub>Power</sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/profiles.png" alt="The Profiles page: named profiles linked to programs"></td>
+    <td><img src="docs/screenshots/settings.png" alt="The Settings page: start with Windows, close to tray, follow linked programs, product pictures, hardware acceleration"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Profiles</sub></td>
+    <td align="center"><sub>Settings</sub></td>
+  </tr>
+</table>
 
 ## Why people switch
 

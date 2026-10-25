@@ -19,7 +19,7 @@ jobs:
     name: Format, lint and test
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -37,27 +37,3 @@ jobs:
 
       - name: Test
         run: cargo test --workspace
-
-  build:
-    name: Release build
-    runs-on: windows-latest
-    needs: check
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache
-        uses: Swatinem/rust-cache@v2
-
-      - name: Build
-        run: cargo build --release
-
-      - name: Upload executable
-        uses: actions/upload-artifact@v4
-        with:
-          name: razer-native-${{ github.sha }}
-          path: target/release/razer-native.exe
-          if-no-files-found: error
-          retention-days: 14
