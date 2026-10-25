@@ -309,7 +309,10 @@ pub(crate) static MODELS: &[Model] = &[
         power: Power::NONE,
         features: Features::NONE,
         lighting: Lighting {
-            proto: LightProto::Extended,
+            // OpenRazer offers on and off but sends neither to this model;
+            // the LED state of its siblings, the Naga 2012 and Naga Hex, can
+            // carry both, where the extended effects have no "on".
+            proto: LightProto::Classic,
             zones: &[
                 Zone::new(Led::Logo, set!(Effects: ON | OFF), false),
                 Zone::new(Led::Scroll, set!(Effects: ON | OFF), false),

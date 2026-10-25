@@ -35,6 +35,7 @@ pub(crate) static TIDS: &[(u16, &[TidFor])] = &[
     (0x0039, LED_STATE),                                                        // Razer Orochi 2013
     (0x003E, CLASSIC),                                                          // Razer Naga Epic Chroma (Wired)
     (0x003F, CLASSIC),                                                          // Razer Naga Epic Chroma (Wireless)
+    (0x0040, LED_STATE),                                                        // Razer Naga 2014, as the Naga 2012
     (0x0041, LED_STATE),                                                        // Razer Naga Hex
     (0x0042, LED_STATE),                                                        // Razer Abyssus
     (0x0043, CLASSIC),                                                          // Razer DeathAdder Chroma
