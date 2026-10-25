@@ -1,6 +1,6 @@
 import { Theme, Icons } from "../theme.slint";
 import { Backend, ProfileItem } from "../backend.slint";
-import { Caption, Hairline, Icon, MenuBody, MenuNote, MenuRow, Section, TextButton, TextField } from "../widgets.slint";
+import { Caption, Hairline, Icon, MenuFrame, MenuRow, Section, TextButton, TextField } from "../widgets.slint";
 
 component ProgramTag inherits Rectangle {
     in property <string> name;
@@ -181,18 +181,23 @@ export component ProfilesPage {
         x: root.pick-x;
         y: root.pick-y;
         width: 260px;
-        close-policy: close-on-click-outside;
-        picker-body := MenuBody {
-            closed => { picker.close(); }
-            if Backend.running-programs.length == 0: MenuNote {
-                text: "No other programs are open.";
+        MenuFrame { }
+        VerticalLayout {
+            padding-top: 4px;
+            padding-bottom: 4px;
+            if Backend.running-programs.length == 0: HorizontalLayout {
+                padding-left: 12px;
+                height: 34px;
+                Text {
+                    text: "No other programs are open.";
+                    font-size: 12.5px;
+                    color: Theme.text-3;
+                    vertical-alignment: center;
+                }
             }
             for program in Backend.running-programs: MenuRow {
                 text: program;
-                clicked => {
-                    Backend.add-program(root.picking, program);
-                    picker-body.dismiss();
-                }
+                clicked => { Backend.add-program(root.picking, program); }
             }
         }
     }
