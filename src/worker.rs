@@ -133,6 +133,8 @@ impl Run {
                 requests.extend(rx.try_iter());
             }
             self.handle(requests);
+            // Showing the window may have shortened the wait.
+            next_poll = next_poll.min(Instant::now() + self.poll_every());
         }
     }
 

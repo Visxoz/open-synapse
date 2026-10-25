@@ -105,7 +105,6 @@ impl ForegroundHook {
                 ON_FOREGROUND.with_borrow(|f| f.as_ref().map(|f| f(exe)));
             }
         }
-        ON_FOREGROUND.set(Some(Box::new(callback)));
         // SAFETY: `changed` is a valid callback for the life of the hook,
         // and out-of-context hooks run on this thread.
         let hook = unsafe {
@@ -119,7 +118,13 @@ impl ForegroundHook {
                 WINEVENT_OUTOFCONTEXT,
             )
         };
-        (!hook.is_null()).then_some(Self(hook))
+        if hook.is_null() {
+            return None;
+        }
+        // Events reach `changed` through this thread's message loop, so none
+        // can arrive before the callback is in place.
+        ON_FOREGROUND.set(Some(Box::new(callback)));
+        Some(Self(hook))
     }
 }
 

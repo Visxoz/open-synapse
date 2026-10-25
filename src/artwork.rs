@@ -97,7 +97,7 @@ pub fn load(pid: u16, url: Option<&str>) -> io::Result<Art> {
     };
     let (outline, details, lit) = draw(w, h, &rgba).ok_or_else(|| io::Error::other("nothing opaque to draw"))?;
     let packed = pack(&outline, &details, &lit);
-    if let Err(e) = std::fs::write(art_path(pid), encode(&packed)?) {
+    if let Err(e) = encode(&packed).and_then(|png| std::fs::write(art_path(pid), png)) {
         log::warn!("could not keep the line art: {e}");
     }
     // Made from the packed layers, so a picture looks the same drawn now as
@@ -105,10 +105,22 @@ pub fn load(pid: u16, url: Option<&str>) -> io::Result<Art> {
     Ok(unpacked(&packed))
 }
 
+/// A box of `[left, top, right, bottom]` grown to take in pixel `(x, y)`.
+fn grown(b: [usize; 4], x: usize, y: usize) -> [usize; 4] {
+    [b[0].min(x), b[1].min(y), b[2].max(x + 1), b[3].max(y + 1)]
+}
+
+fn union(a: [usize; 4], b: [usize; 4]) -> [usize; 4] {
+    [a[0].min(b[0]), a[1].min(b[1]), a[2].max(b[2]), a[3].max(b[3])]
+}
+
+fn byte(v: f32) -> u8 {
+    (v * 255.).round() as u8
+}
+
 /// The layers in one image: the outline in red, the details in green and
 /// the lit parts in blue.
 fn pack(outline: &Plane, details: &Plane, lit: &Plane) -> (usize, usize, Vec<u8>) {
-    let byte = |v: f32| (v * 255.).round() as u8;
     let rgba = outline
         .v
         .iter()
@@ -139,7 +151,7 @@ fn unpacked((w, h, rgba): &(usize, usize, Vec<u8>)) -> Art {
 }
 
 fn pixels(plane: &Plane) -> SharedPixelBuffer<Rgba8Pixel> {
-    white(plane.w, plane.h, plane.v.iter().map(|&a| (a * 255.).round() as u8))
+    white(plane.w, plane.h, plane.v.iter().map(|&a| byte(a)))
 }
 
 /// White pixels at the given alphas, for the UI to colour.
@@ -205,7 +217,11 @@ fn decode(bytes: &[u8]) -> io::Result<(usize, usize, Vec<u8>)> {
                 .ok_or_else(|| io::Error::other("image too large"))?
         ];
         reader.next_frame(&mut buf).map_err(io::Error::other)?;
-        return Ok((w, h, buf.chunks_exact(channels).flat_map(rgba).collect()));
+        // Already RGBA, or grey and alpha pairs to widen.
+        if channels != 4 {
+            buf = buf.as_chunks::<2>().0.iter().flat_map(|p| rgba(p)).collect();
+        }
+        return Ok((w, h, buf));
     }
 
     let (ow, oh) = (w.div_ceil(f), h.div_ceil(f));
@@ -320,12 +336,7 @@ fn main_shape(w: usize, h: usize, rgba: &[u8]) -> Option<(Vec<bool>, [usize; 4])
     let mut bounds = [w, h, 0, 0];
     for (i, _) in seen.iter().enumerate().filter(|(_, m)| **m) {
         let (x, y) = (i % w, i / w);
-        bounds = [
-            bounds[0].min(x),
-            bounds[1].min(y),
-            bounds[2].max(x + 1),
-            bounds[3].max(y + 1),
-        ];
+        bounds = grown(bounds, x, y);
     }
     Some((seen, bounds))
 }
@@ -647,8 +658,7 @@ fn lights(lit: &Plane, outline: &[bool]) -> Lights {
             s.rim += k;
         }
         if k > 0. {
-            let b = &mut s.bounds;
-            *b = [b[0].min(x), b[1].min(y), b[2].max(x + 1), b[3].max(y + 1)];
+            s.bounds = grown(s.bounds, x, y);
         }
         if k > 0.5 {
             s.strong = Some(s.strong.map_or((x, x), |(l, r)| (l.min(x), r.max(x))));
@@ -696,10 +706,7 @@ fn lights(lit: &Plane, outline: &[bool]) -> Lights {
             return None;
         }
         let right = of().filter_map(|s| s.strong).map(|(_, r)| r).max()?;
-        let b = of().fold([w, h, 0, 0], |b, s| {
-            let c = s.bounds;
-            [b[0].min(c[0]), b[1].min(c[1]), b[2].max(c[2]), b[3].max(c[3])]
-        });
+        let b = of().fold([w, h, 0, 0], |b, s| union(b, s.bounds));
         let mine = |i: usize| match labels[i] {
             l if l > 0 && parts[l as usize - 1] == Some(which) => core[i],
             _ => 0.,

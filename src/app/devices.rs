@@ -54,20 +54,24 @@ impl App {
     }
 
     pub(super) fn disconnected(&self, id: DeviceId) {
-        let mut st = self.state.borrow_mut();
+        let mut guard = self.state.borrow_mut();
+        let st = &mut *guard;
         let Some(index) = st.devices.iter().position(|d| d.id == id) else {
             return;
         };
         st.devices.remove(index);
         // Pictures of models no longer connected are not worth their memory.
-        let connected: Vec<u16> = st.devices.iter().map(|d| d.model.pid).collect();
-        st.pictures.retain(|pid, _| connected.contains(pid));
-        if st.selected >= index && st.selected > 0 {
+        let devices = &st.devices;
+        st.pictures.retain(|pid, _| devices.iter().any(|d| d.model.pid == *pid));
+        if st.selected > index {
             st.selected -= 1;
+        } else if st.selected == index {
+            // The next device takes its place, with its own zones.
+            st.selected = index.min(devices.len().saturating_sub(1));
             st.zone = 0;
             st.load_params();
         }
-        drop(st);
+        drop(guard);
         self.refresh();
     }
 
@@ -127,7 +131,7 @@ impl App {
     }
 
     /// Edits the selected device's DPI stages.
-    pub(super) fn edit_stages(&self, edit: impl FnOnce(&mut DpiStages, u16)) {
+    pub(super) fn edit_stages(&self, edit: impl FnOnce(&mut DpiStages, DpiRange)) {
         let st = self.state.borrow();
         let Some(device) = st.devices.get(st.selected) else {
             return;
@@ -135,9 +139,9 @@ impl App {
         let Some(mut stages) = device.state.stages.clone() else {
             return;
         };
-        let max = device.model.dpi.max();
+        let range = device.model.dpi;
         drop(st);
-        edit(&mut stages, max);
+        edit(&mut stages, range);
         if stages.stages.is_empty() {
             return;
         }
@@ -146,11 +150,10 @@ impl App {
     }
 
     pub(super) fn add_stage(&self) {
-        self.edit_stages(|s, max| {
+        self.edit_stages(|s, range| {
             if s.stages.len() < MAX_STAGES {
                 let last = s.stages.last().map_or(800, |d| d.x);
-                s.stages
-                    .push(Dpi::square(last.saturating_mul(2).clamp(DpiRange::MIN, max)));
+                s.stages.push(Dpi::square(range.clamp(last.saturating_mul(2))));
                 s.active = s.stages.len() - 1;
             }
         });
