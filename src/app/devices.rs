@@ -89,6 +89,24 @@ impl App {
                 device.state.charging = info.state.charging;
                 device.state.awake = info.state.awake;
             } else {
+                // What changed without us, by the DPI button or another
+                // program, is kept, so the profile does not undo it later.
+                if !woke && info.state.awake {
+                    let before = device.state.settings();
+                    let pid = device.model.pid;
+                    let outside: Vec<Setting> = info
+                        .state
+                        .settings()
+                        .into_iter()
+                        .filter(|s| !before.contains(s))
+                        .collect();
+                    if !outside.is_empty() {
+                        for s in outside {
+                            st.profiles.active_mut().store(pid, s);
+                        }
+                        self.save_soon();
+                    }
+                }
                 *device = info;
             }
             if woke {
