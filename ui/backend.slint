@@ -1,0 +1,148 @@
+export struct DeviceItem {
+    name: string,
+    link: string,
+    /// -1 when the device has no battery.
+    battery: int,
+    charging: bool,
+}
+
+export struct StageItem {
+    x: int,
+    y: int,
+}
+
+export struct Choice {
+    label: string,
+    value: int,
+}
+
+export struct ZoneLook {
+    /// The model lights this part of the drawing.
+    present: bool,
+    /// The callout naming the zone, empty where another zone's light spills over.
+    label: string,
+    kind: int,
+    a: color,
+    b: color,
+}
+
+export struct ProfileItem {
+    name: string,
+    programs: [string],
+}
+
+/// Everything Rust shows and every action it handles; the selected
+/// device's values sit at the top level.
+export global Backend {
+    in property <[DeviceItem]> devices;
+    in property <int> device: -1;
+    in property <string> version;
+
+    in property <string> name;
+    in property <string> link;
+    in property <string> firmware;
+    in property <string> serial;
+    in property <string> product-id;
+    in property <string> path;
+    in property <[string]> features;
+    in property <bool> asleep;
+    /// The model's picture as line art, empty when there is none.
+    in property <image> art-outline;
+    in property <image> art-details;
+    /// The picture is still being drawn, so nothing should stand in for it.
+    in property <bool> art-pending;
+    /// The first look for devices has finished.
+    in property <bool> scanned;
+
+    in property <bool> has-dpi;
+    in property <bool> has-stages;
+    in property <int> dpi-min: 100;
+    in property <int> dpi-max: 100;
+    in property <[StageItem]> stages;
+    in property <int> active-stage;
+    in property <StageItem> dpi;
+    in property <[Choice]> poll-rates;
+    in property <int> poll;
+    /// Windows' pointer settings, for every mouse.
+    in property <int> pointer-speed: 10;
+    in property <bool> pointer-precision;
+    in property <int> scroll-lines: 3;
+    in property <int> double-click: 500;
+    in property <[Choice]> scroll-options;
+    in property <[bool]> scroll-values;
+
+    in property <[Choice]> zones;
+    in property <int> zone;
+    in property <int> zone-led: -1;
+    in property <[Choice]> effects;
+    in property <int> effect: -1;
+    in property <color> colour-a: #44d62c;
+    in property <color> colour-b: #3d8bff;
+    in property <int> speed: 2;
+    in property <int> direction: 1;
+    in property <bool> has-brightness;
+    in property <int> brightness: 255;
+    /// Logo, scroll wheel, sides and underglow, each shown as the zone covering it.
+    in property <[ZoneLook]> looks: [{ kind: -1 }, { kind: -1 }, { kind: -1 }, { kind: -1 }];
+
+    in property <bool> has-battery;
+    in property <int> battery;
+    in property <bool> charging;
+    in property <bool> has-idle;
+    in property <int> idle: 300;
+    in property <bool> has-low-battery;
+    in property <int> low-battery: 15;
+    in property <[Choice]> dongle-modes;
+    in property <[int]> dongle-leds;
+
+    in property <[ProfileItem]> profiles;
+    in property <int> profile;
+    in property <[string]> running-programs;
+
+    in property <bool> start-with-windows;
+    in property <bool> close-to-tray;
+    in property <bool> auto-switch;
+    in property <bool> gpu;
+    in property <bool> pictures;
+
+    /// A passing message for the status bar, such as a write that failed.
+    in property <string> notice;
+
+    callback select-device(int);
+    callback set-stage(int, int, int);
+    callback activate-stage(int);
+    callback add-stage();
+    callback remove-stage(int);
+    callback set-dpi(int, int);
+    callback set-poll(int);
+    callback set-scroll(int, bool);
+    callback set-pointer-speed(int);
+    callback set-pointer-precision(bool);
+    callback set-scroll-lines(int);
+    callback set-double-click(int);
+
+    callback select-zone(int);
+    callback set-effect(int);
+    callback set-colour(int, color);
+    callback set-speed(int);
+    callback set-direction(int);
+    callback set-brightness(int);
+
+    callback set-idle(int);
+    callback set-low-battery(int);
+    callback set-dongle-led(int, int);
+
+    callback select-profile(int);
+    callback add-profile();
+    callback rename-profile(int, string);
+    callback delete-profile(int);
+    callback list-programs();
+    callback add-program(int, string);
+    callback remove-program(int, int);
+
+    callback set-start-with-windows(bool);
+    callback set-close-to-tray(bool);
+    callback set-auto-switch(bool);
+    callback set-gpu(bool);
+    callback set-pictures(bool);
+}

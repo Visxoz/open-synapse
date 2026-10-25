@@ -1,0 +1,114 @@
+import { Theme } from "theme.slint";
+
+component Knob inherits Rectangle {
+    width: 10px;
+    height: 10px;
+    border-width: 2px;
+    border-color: white;
+    Rectangle {
+        border-width: 1px;
+        border-color: #00000080;
+    }
+}
+
+component Area inherits TouchArea {
+    callback pick(float, float);
+    out property <bool> dragging;
+    mouse-cursor: crosshair;
+    pointer-event(ev) => {
+        if ev.kind == PointerEventKind.down {
+            self.dragging = true;
+            self.pick(clamp(self.mouse-x / self.width, 0, 1), clamp(self.mouse-y / self.height, 0, 1));
+        } else if ev.kind == PointerEventKind.up {
+            self.dragging = false;
+        }
+    }
+    moved => {
+        if self.dragging {
+            self.pick(clamp(self.mouse-x / self.width, 0, 1), clamp(self.mouse-y / self.height, 0, 1));
+        }
+    }
+}
+
+/// A saturation and brightness field, a hue strip and a few presets.
+export component ColourPicker {
+    in property <color> colour;
+    callback changed(color);
+    property <float> hue;
+    property <float> sat: 1;
+    property <float> val: 1;
+    property <color> picked: hsv(root.hue, root.sat, root.val);
+    property <[color]> presets: [#44d62c, #00e5a0, #00b7ff, #2f6bff, #8f4dff, #ff2fd0, #ff2b4a, #ff7a1a, #ffd21f, #ffffff];
+
+    function sync() {
+        if !field.dragging && !strip.dragging && root.colour != root.picked {
+            root.hue = root.colour.to-hsv().hue;
+            root.sat = root.colour.to-hsv().saturation;
+            root.val = root.colour.to-hsv().value;
+        }
+    }
+    init => { root.sync(); }
+    changed colour => { root.sync(); }
+
+    VerticalLayout {
+        spacing: 10px;
+        Rectangle {
+            height: 132px;
+            background: hsv(root.hue, 1, 1);
+            Rectangle {
+                background: @linear-gradient(90deg, #ffffff 0%, #ffffff00 100%);
+            }
+
+            Rectangle {
+                background: @linear-gradient(180deg, #00000000 0%, #000000 100%);
+            }
+
+            Knob {
+                x: root.sat * parent.width - self.width / 2;
+                y: (1 - root.val) * parent.height - self.height / 2;
+            }
+
+            field := Area {
+                pick(x, y) => {
+                    root.sat = x;
+                    root.val = 1 - y;
+                    root.changed(root.picked);
+                }
+            }
+        }
+
+        Rectangle {
+            height: 10px;
+            background: @linear-gradient(90deg, #ff0000 0%, #ffff00 16.67%, #00ff00 33.33%, #00ffff 50%, #0000ff 66.67%, #ff00ff 83.33%, #ff0000 100%);
+            Knob {
+                x: root.hue / 360 * parent.width - self.width / 2;
+                height: 14px;
+            }
+
+            strip := Area {
+                mouse-cursor: pointer;
+                pick(x, y) => {
+                    root.hue = min(x, 0.999) * 360;
+                    root.changed(root.picked);
+                }
+            }
+        }
+
+        HorizontalLayout {
+            spacing: 6px;
+            padding-top: 4px;
+            for preset in root.presets: Rectangle {
+                width: 20px;
+                height: 20px;
+                background: preset;
+                border-width: preset == root.colour || touch.has-hover ? 2px : 0;
+                border-color: preset == root.colour ? Theme.text : Theme.text-3;
+                touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => { root.changed(preset); }
+                }
+            }
+            Rectangle { }
+        }
+    }
+}

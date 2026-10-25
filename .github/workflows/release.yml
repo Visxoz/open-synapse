@@ -1,0 +1,78 @@
+# Publishes a release when a version tag is pushed:
+#
+#   git tag v0.1.0 && git push origin v0.1.0
+#
+# The tag must match the version in Cargo.toml. The release is created as a
+# draft so the notes can be checked before it goes live. Running the workflow
+# by hand only builds and uploads the zip as an artifact, without a release.
+
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    name: Build and publish
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the tag against Cargo.toml
+        if: github.event_name == 'push'
+        shell: pwsh
+        run: |
+          $version = (Select-String -Path Cargo.toml -Pattern '^version = "(.+)"').Matches[0].Groups[1].Value
+          if ("v$version" -ne "${{ github.ref_name }}") {
+            throw "Cargo.toml says $version but the tag is ${{ github.ref_name }}"
+          }
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build
+        run: cargo build --release
+
+      - name: Package
+        id: package
+        shell: pwsh
+        run: |
+          $version = (Select-String -Path Cargo.toml -Pattern '^version = "(.+)"').Matches[0].Groups[1].Value
+          $name = "razer-native-v$version-windows-x64"
+          New-Item -ItemType Directory -Path "dist/$name" | Out-Null
+          Copy-Item target/release/razer-native.exe, LICENSE, README.md -Destination "dist/$name"
+          Compress-Archive -Path "dist/$name/*" -DestinationPath "dist/$name.zip"
+          (Get-FileHash "dist/$name.zip" -Algorithm SHA256).Hash.ToLower() + "  $name.zip" |
+            Out-File -Encoding ascii "dist/$name.zip.sha256"
+          "name=$name" >> $env:GITHUB_OUTPUT
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.package.outputs.name }}
+          path: |
+            dist/*.zip
+            dist/*.sha256
+          if-no-files-found: error
+
+      - name: Create draft release
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Razer Native ${{ github.ref_name }}
+          draft: true
+          generate_release_notes: true
+          files: |
+            dist/*.zip
+            dist/*.sha256

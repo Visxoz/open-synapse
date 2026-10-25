@@ -1,0 +1,165 @@
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "theme.slint";
+import { Backend } from "backend.slint";
+import { Caption, Reveal } from "widgets.slint";
+import { Schematic, Preview } from "schematic.slint";
+import { StatusBar, Tabs, TopBar } from "chrome.slint";
+import { PerformancePage } from "pages/performance.slint";
+import { LightingPage } from "pages/lighting.slint";
+import { PowerPage } from "pages/power.slint";
+import { InfoPage } from "pages/info.slint";
+import { ProfilesPage } from "pages/profiles.slint";
+import { SettingsPage } from "pages/settings.slint";
+
+export { Backend, DeviceItem, StageItem, Choice, ZoneLook, ProfileItem } from "backend.slint";
+export { Tray } from "tray.slint";
+
+/// The drawing beside each device page, labelled for that page.
+component DevicePanel {
+    in property <int> page;
+    property <float> t;
+    property <bool> lighting: root.page == 1;
+    width: 460px;
+    Timer {
+        interval: 50ms;
+        running: root.lighting && (Preview.animated(Backend.looks[0].kind) || Preview.animated(Backend.looks[1].kind) || Preview.animated(Backend.looks[2].kind) || Preview.animated(Backend.looks[3].kind));
+        triggered => { root.t += 0.05; }
+    }
+
+    Schematic {
+        x: 0;
+        y: 0;
+        width: parent.width;
+        height: parent.height;
+        outline-art: Backend.art-outline;
+        details-art: Backend.art-details;
+        pending: Backend.art-pending;
+        // As tall as fits, with room on both sides for the callouts.
+        size: min(400px, parent.height - 80px, (parent.width - 280px) / (Backend.art-outline.width > 0 ? Backend.art-outline.width / Backend.art-outline.height : 0.6));
+        logo: Preview.colour(Backend.looks[0], root.t);
+        wheel: Preview.colour(Backend.looks[1], root.t);
+        sides: Preview.colour(Backend.looks[2], root.t);
+        under: Preview.colour(Backend.looks[3], root.t);
+        selected: root.lighting ? Backend.zone-led : -1;
+        wheel-label: root.lighting ? Backend.looks[1].label : "";
+        logo-label: root.lighting ? Backend.looks[0].label : "";
+        side-label: root.lighting ? Backend.looks[2].label : "";
+        under-label: root.lighting ? Backend.looks[3].label : "";
+        dpi-label: Backend.asleep ? "" : root.page == 0 && Backend.has-stages ? "STAGE \{Backend.active-stage + 1}  \{Backend.stages[Backend.active-stage].x}" : root.page == 0 && Backend.has-dpi ? "\{Backend.dpi.x} DPI" : "";
+    }
+
+    Rectangle {
+        x: parent.width - 1px;
+        width: 1px;
+        background: Theme.line;
+    }
+}
+
+export component AppWindow inherits Window {
+    title: "Razer Native";
+    icon: @image-url("assets/icon.png");
+    background: Theme.background;
+    default-font-family: Theme.body;
+    default-font-size: 13.5px;
+    min-width: 1040px;
+    min-height: 680px;
+    preferred-width: 1200px;
+    preferred-height: 780px;
+    in-out property <int> page;
+    property <bool> has-lighting: Backend.zones.length > 0;
+    property <bool> has-power: Backend.has-battery || Backend.has-idle || Backend.has-low-battery || Backend.dongle-leds.length > 0;
+    property <int> shown: (root.page == 1 && !root.has-lighting) || (root.page == 2 && !root.has-power) ? 0 : root.page;
+
+    VerticalLayout {
+        TopBar { }
+        Tabs {
+            page <=> root.page;
+            has-lighting: root.has-lighting && Backend.device >= 0;
+            has-power: root.has-power && Backend.device >= 0;
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+            if root.shown <= 3 && Backend.device < 0 && Backend.scanned: VerticalLayout {
+                alignment: center;
+                spacing: 18px;
+                HorizontalLayout {
+                    alignment: center;
+                    Schematic {
+                        width: 460px;
+                        height: 300px;
+                        size: 300px;
+                        opacity: 0.35;
+                    }
+                }
+
+                Caption {
+                    text: "NO MOUSE CONNECTED";
+                    horizontal-alignment: center;
+                }
+
+                Text {
+                    text: "Plug in a Razer mouse or its wireless receiver.";
+                    font-size: 13px;
+                    color: Theme.text-3;
+                    horizontal-alignment: center;
+                }
+            }
+            if root.shown <= 3 && Backend.device >= 0: HorizontalLayout {
+                DevicePanel {
+                    page: root.shown;
+                }
+
+                ScrollView {
+                    VerticalLayout {
+                        padding: Theme.pad;
+                        padding-top: 26px;
+                        alignment: start;
+                        if Backend.asleep && root.shown != 3: VerticalLayout {
+                            spacing: 8px;
+                            padding-top: 8px;
+                            padding-bottom: 34px;
+                            Caption {
+                                text: "MOUSE ASLEEP";
+                                color: Theme.warning;
+                            }
+
+                            Text {
+                                text: "Move it to wake it. Its settings load as soon as it answers.";
+                                font-size: 13px;
+                                color: Theme.text-2;
+                            }
+                        }
+                        if root.shown == 0: Reveal {
+                            PerformancePage { }
+                        }
+                        if !Backend.asleep && root.shown == 1: Reveal {
+                            LightingPage { }
+                        }
+                        if !Backend.asleep && root.shown == 2: Reveal {
+                            PowerPage { }
+                        }
+                        if root.shown == 3: Reveal {
+                            InfoPage { }
+                        }
+                    }
+                }
+            }
+            if root.shown >= 4: ScrollView {
+                VerticalLayout {
+                    padding: Theme.pad;
+                    padding-top: 26px;
+                    alignment: start;
+                    if root.shown == 4: Reveal {
+                        ProfilesPage { }
+                    }
+                    if root.shown == 5: Reveal {
+                        SettingsPage { }
+                    }
+                }
+            }
+        }
+
+        StatusBar { }
+    }
+}

@@ -1,0 +1,112 @@
+import { Theme } from "../theme.slint";
+import { Backend } from "../backend.slint";
+import { Field, Gauge, Section, Steps } from "../widgets.slint";
+
+export component PowerPage {
+    VerticalLayout {
+        spacing: 30px;
+        alignment: start;
+        if Backend.has-battery: Section {
+            title: "BATTERY";
+            HorizontalLayout {
+                padding-top: 22px;
+                padding-bottom: 8px;
+                spacing: 6px;
+                Text {
+                    text: Backend.battery;
+                    font-family: Theme.display;
+                    font-size: 60px;
+                    font-weight: 300;
+                    color: Theme.text;
+                }
+
+                VerticalLayout {
+                    alignment: end;
+                    padding-bottom: 12px;
+                    Text {
+                        text: "%";
+                        font-family: Theme.display;
+                        font-size: 18px;
+                        color: Theme.text-2;
+                    }
+                }
+
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+
+                VerticalLayout {
+                    alignment: end;
+                    padding-bottom: 14px;
+                    spacing: 10px;
+                    Text {
+                        text: Backend.charging ? "CHARGING" : "DISCHARGING";
+                        font-family: Theme.display;
+                        font-size: 11px;
+                        letter-spacing: 1.6px;
+                        color: Backend.charging ? Theme.accent : Theme.text-3;
+                        horizontal-alignment: right;
+                    }
+
+                    Gauge {
+                        height: 22px;
+                        cells: 20;
+                        cell-width: 7px;
+                        level: Backend.battery;
+                        charging: Backend.charging;
+                    }
+                }
+            }
+        }
+
+        if Backend.has-idle || Backend.has-low-battery: Section {
+            title: "SAVING";
+            if Backend.has-idle: Field {
+                label: "Sleep after";
+                Steps {
+                    options: [
+                        { label: "1 min", value: 60 },
+                        { label: "2", value: 120 },
+                        { label: "3", value: 180 },
+                        { label: "5", value: 300 },
+                        { label: "10", value: 600 },
+                        { label: "15", value: 900 },
+                    ];
+                    value: Backend.idle;
+                    selected(v) => { Backend.set-idle(v); }
+                }
+            }
+            if Backend.has-low-battery: Field {
+                label: "Low power below";
+                divider: false;
+                Steps {
+                    options: [
+                        { label: "5%", value: 5 },
+                        { label: "10", value: 10 },
+                        { label: "15", value: 15 },
+                        { label: "20", value: 20 },
+                        { label: "25", value: 25 },
+                        { label: "30", value: 30 },
+                        { label: "40", value: 40 },
+                        { label: "50", value: 50 },
+                    ];
+                    value: Backend.low-battery;
+                    selected(v) => { Backend.set-low-battery(v); }
+                }
+            }
+        }
+
+        if Backend.dongle-leds.length > 0: Section {
+            title: "RECEIVER";
+            for mode[i] in Backend.dongle-leds: Field {
+                label: Backend.dongle-leds.length > 1 ? "Light \{i + 1}" : "Light";
+                divider: i < Backend.dongle-leds.length - 1;
+                Steps {
+                    options: Backend.dongle-modes;
+                    value: mode;
+                    selected(v) => { Backend.set-dongle-led(i, v); }
+                }
+            }
+        }
+    }
+}

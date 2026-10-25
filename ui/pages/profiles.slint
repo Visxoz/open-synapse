@@ -1,0 +1,204 @@
+import { Theme, Icons } from "../theme.slint";
+import { Backend, ProfileItem } from "../backend.slint";
+import { Caption, Hairline, Icon, MenuFrame, MenuRow, Section, TextButton, TextField } from "../widgets.slint";
+
+component ProgramTag inherits Rectangle {
+    in property <string> name;
+    callback remove();
+    height: 24px;
+    min-width: row.preferred-width;
+    border-width: 1px;
+    border-color: Theme.line-strong;
+    border-radius: Theme.radius;
+    row := HorizontalLayout {
+        padding-left: 8px;
+        padding-right: 2px;
+        spacing: 2px;
+        Text {
+            text: root.name;
+            font-family: Theme.mono;
+            font-size: 11.5px;
+            color: Theme.text-2;
+            vertical-alignment: center;
+        }
+
+        Rectangle {
+            width: 20px;
+            Icon {
+                path: Icons.close;
+                size: 12px;
+                color: unlink.has-hover ? Theme.text : Theme.text-3;
+            }
+
+            unlink := TouchArea {
+                mouse-cursor: pointer;
+                clicked => { root.remove(); }
+            }
+        }
+    }
+}
+
+component ProfileRow {
+    in property <int> index;
+    in property <ProfileItem> profile;
+    in property <bool> active;
+    callback link(length, length);
+    min-height: 56px;
+    HorizontalLayout {
+        spacing: 14px;
+        Rectangle {
+            width: 24px;
+            VerticalLayout {
+                alignment: center;
+                Rectangle {
+                    width: 10px;
+                    height: 10px;
+                    background: root.active ? Theme.accent : transparent;
+                    border-width: root.active ? 0 : 1px;
+                    border-color: pick.has-hover ? Theme.text : Theme.text-3;
+                }
+            }
+
+            pick := TouchArea {
+                mouse-cursor: pointer;
+                clicked => { Backend.select-profile(root.index); }
+            }
+        }
+
+        VerticalLayout {
+            alignment: center;
+            TextField {
+                width: 220px;
+                bare: true;
+                text: root.profile.name;
+                accepted(text) => { Backend.rename-profile(root.index, text); }
+                changed has-focus => {
+                    if !self.has-focus {
+                        Backend.rename-profile(root.index, self.text);
+                    }
+                }
+            }
+        }
+
+        HorizontalLayout {
+            horizontal-stretch: 1;
+            alignment: start;
+            spacing: 6px;
+            for program[p] in root.profile.programs: VerticalLayout {
+                alignment: center;
+                ProgramTag {
+                    name: program;
+                    remove => { Backend.remove-program(root.index, p); }
+                }
+            }
+            VerticalLayout {
+                alignment: center;
+                TextButton {
+                    text: "LINK";
+                    icon: Icons.add;
+                    clicked => {
+                        Backend.list-programs();
+                        root.link(self.absolute-position.x, self.absolute-position.y + self.height);
+                    }
+                }
+            }
+        }
+
+        VerticalLayout {
+            alignment: center;
+            TextButton {
+                text: root.active ? "ACTIVE" : "ACTIVATE";
+                accent: root.active;
+                clicked => { Backend.select-profile(root.index); }
+            }
+        }
+
+        VerticalLayout {
+            alignment: center;
+            TextButton {
+                text: "DELETE";
+                danger: true;
+                enabled: Backend.profiles.length > 1;
+                clicked => { Backend.delete-profile(root.index); }
+            }
+        }
+    }
+
+    Hairline {
+        y: parent.height - 1px;
+    }
+}
+
+export component ProfilesPage {
+    property <int> picking: -1;
+    property <length> pick-x;
+    property <length> pick-y;
+    VerticalLayout {
+        alignment: start;
+        Section {
+            title: "PROFILES";
+            action: "NEW PROFILE";
+            act => { Backend.add-profile(); }
+            HorizontalLayout {
+                height: 34px;
+                spacing: 14px;
+                Rectangle {
+                    width: 24px;
+                }
+
+                HorizontalLayout {
+                    width: 220px;
+                    padding-left: 9px;
+                    Caption {
+                        text: "NAME";
+                        vertical-alignment: center;
+                    }
+                }
+
+                Caption {
+                    text: "SWITCHES ON WHEN IN FRONT";
+                    vertical-alignment: center;
+                    horizontal-stretch: 1;
+                }
+            }
+
+            Hairline { }
+            for profile[i] in Backend.profiles: ProfileRow {
+                index: i;
+                profile: profile;
+                active: i == Backend.profile;
+                link(x, y) => {
+                    root.picking = i;
+                    root.pick-x = x - root.absolute-position.x;
+                    root.pick-y = y - root.absolute-position.y + 4px;
+                    picker.show();
+                }
+            }
+        }
+    }
+
+    picker := PopupWindow {
+        x: root.pick-x;
+        y: root.pick-y;
+        width: 260px;
+        MenuFrame { }
+        VerticalLayout {
+            padding-top: 4px;
+            padding-bottom: 4px;
+            if Backend.running-programs.length == 0: HorizontalLayout {
+                padding-left: 12px;
+                height: 34px;
+                Text {
+                    text: "No other programs are open.";
+                    font-size: 12.5px;
+                    color: Theme.text-3;
+                    vertical-alignment: center;
+                }
+            }
+            for program in Backend.running-programs: MenuRow {
+                text: program;
+                clicked => { Backend.add-program(root.picking, program); }
+            }
+        }
+    }
+}

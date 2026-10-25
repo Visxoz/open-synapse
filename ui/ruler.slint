@@ -1,0 +1,117 @@
+import { Theme } from "theme.slint";
+import { StageItem } from "backend.slint";
+
+/// DPI on a logarithmic scale, so each doubling takes the same width, with
+/// a flag per stage to drag along it.
+export component DpiRuler {
+    in property <[StageItem]> stages;
+    in property <int> active;
+    in property <int> minimum: 100;
+    in property <int> maximum: 26000;
+    callback activate(int);
+    callback moved(int, int);
+    callback released(int, int);
+    property <float> span: ln(max(root.maximum, root.minimum + 1) / root.minimum);
+    property <length> track: 46px;
+    property <int> dragging: -1;
+    property <int> drag-dpi;
+    height: 76px;
+    min-width: 320px;
+
+    pure function pos(dpi: float) -> length {
+        return root.width * clamp(ln(max(dpi, root.minimum) / root.minimum) / root.span, 0, 1);
+    }
+    pure function dpi-at(x: length) -> int {
+        return clamp(round(root.minimum * exp(clamp(x / root.width, 0, 1) * root.span) / 50) * 50, root.minimum, root.maximum);
+    }
+    pure function short(dpi: int) -> string {
+        return dpi >= 1000 ? (round(dpi / 100) / 10) + "K" : "\{dpi}";
+    }
+
+    TouchArea {
+        mouse-cursor: pointer;
+        clicked => { root.released(root.active, root.dpi-at(self.mouse-x)); }
+    }
+
+    Rectangle {
+        y: root.track;
+        height: 1px;
+        background: Theme.line-strong;
+    }
+
+    // A tick at each doubling, its label centred under it but kept on the ruler.
+    for i in 10: tick := Rectangle {
+        property <int> dpi: root.minimum * pow(2, i);
+        visible: self.dpi <= root.maximum;
+        x: root.pos(self.dpi);
+        y: root.track;
+        width: 1px;
+        height: 7px;
+        background: Theme.text-3;
+        Text {
+            x: clamp(-self.width / 2, -tick.x, root.width - tick.x - self.width);
+            y: 12px;
+            text: root.short(tick.dpi);
+            font-family: Theme.display;
+            font-size: 11px;
+            color: Theme.text-3;
+        }
+    }
+
+    for stage[i] in root.stages: marker := Rectangle {
+        property <int> dpi: root.dragging == i ? root.drag-dpi : stage.x;
+        property <bool> current: i == root.active;
+        x: root.pos(self.dpi) - self.width / 2;
+        y: 0;
+        width: 18px;
+        // Glides to a new value, but keeps up with the pointer while dragged.
+        animate x {
+            duration: root.dragging == i ? 0ms : 180ms;
+            easing: ease-out;
+        }
+        height: root.track + 1px;
+        Rectangle {
+            x: (parent.width - 1px) / 2;
+            y: 16px;
+            width: 1px;
+            height: parent.height - 16px;
+            background: marker.current ? Theme.accent : Theme.text-2;
+        }
+
+        Rectangle {
+            y: 0;
+            height: 16px;
+            border-radius: 1px;
+            background: marker.current ? Theme.accent : Theme.background;
+            animate background { duration: 140ms; }
+            border-width: marker.current ? 0 : 1px;
+            border-color: touch.has-hover || root.dragging == i ? Theme.text : Theme.text-2;
+            Text {
+                text: i + 1;
+                font-family: Theme.display;
+                font-size: 11px;
+                color: marker.current ? Theme.on-accent : Theme.text;
+            }
+        }
+
+        touch := TouchArea {
+            mouse-cursor: ew-resize;
+            pointer-event(ev) => {
+                if ev.button == PointerEventButton.left && ev.kind == PointerEventKind.down {
+                    root.drag-dpi = stage.x;
+                    root.dragging = i;
+                    root.activate(i);
+                } else if ev.button == PointerEventButton.left && ev.kind == PointerEventKind.up && root.dragging == i {
+                    root.dragging = -1;
+                    root.released(i, root.drag-dpi);
+                }
+            }
+            moved => {
+                if root.dragging == i && root.dpi-at(marker.x + self.mouse-x) != root.drag-dpi {
+                    root.drag-dpi = root.dpi-at(marker.x + self.mouse-x);
+                    root.moved(i, root.drag-dpi);
+                }
+            }
+        }
+    }
+}

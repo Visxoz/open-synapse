@@ -1,0 +1,150 @@
+import { Theme } from "../theme.slint";
+import { Backend, Choice } from "../backend.slint";
+import { Field, Section, Slider, Steps } from "../widgets.slint";
+import { ColourPicker } from "../colour_picker.slint";
+import { Kind } from "../schematic.slint";
+
+/// Options as a grid of radio rows.
+component Options {
+    in property <[Choice]> options;
+    in property <int> value;
+    in property <int> columns: 3;
+    callback selected(int);
+    property <length> row-height: 36px;
+    height: ceil(root.options.length / root.columns) * root.row-height;
+    for option[i] in root.options: Rectangle {
+        x: mod(i, root.columns) * root.width / root.columns;
+        y: floor(i / root.columns) * root.row-height;
+        width: root.width / root.columns;
+        height: root.row-height;
+        HorizontalLayout {
+            spacing: 10px;
+            VerticalLayout {
+                alignment: center;
+                Rectangle {
+                    width: 9px;
+                    height: 9px;
+                    background: option.value == root.value ? Theme.accent : transparent;
+                    border-width: option.value == root.value ? 0 : 1px;
+                    border-color: touch.has-hover ? Theme.text : Theme.text-3;
+                    animate background, border-color { duration: 140ms; }
+                }
+            }
+
+            Text {
+                text: option.label;
+                font-size: 13.5px;
+                color: option.value == root.value || touch.has-hover ? Theme.text : Theme.text-2;
+                animate color { duration: Theme.fast; }
+                vertical-alignment: center;
+                horizontal-stretch: 1;
+            }
+        }
+
+        touch := TouchArea {
+            mouse-cursor: pointer;
+            clicked => { root.selected(option.value); }
+        }
+    }
+}
+
+export component LightingPage {
+    property <int> editing;
+    property <bool> wants-colour: Backend.effect == Kind.static || Backend.effect == Kind.breath || Backend.effect == Kind.dual || Backend.effect == Kind.reactive || Backend.effect == Kind.blinking;
+    VerticalLayout {
+        spacing: 30px;
+        alignment: start;
+        if Backend.zones.length > 1: Section {
+            title: "ZONE";
+            Field {
+                label: "Editing";
+                divider: false;
+                Steps {
+                    options: Backend.zones;
+                    value: Backend.zone;
+                    selected(i) => { Backend.select-zone(i); }
+                }
+            }
+        }
+
+        Section {
+            title: "EFFECT";
+            Rectangle {
+                height: 10px;
+            }
+
+            Options {
+                options: Backend.effects;
+                value: Backend.effect;
+                selected(v) => { Backend.set-effect(v); }
+            }
+        }
+
+        if root.wants-colour: Section {
+            title: "COLOUR";
+            if Backend.effect == Kind.dual: Field {
+                label: "Editing";
+                Steps {
+                    options: [{ label: "First", value: 0 }, { label: "Second", value: 1 }];
+                    value: root.editing;
+                    selected(v) => { root.editing = v; }
+                }
+            }
+            HorizontalLayout {
+                padding-top: 16px;
+                alignment: start;
+                ColourPicker {
+                    width: 420px;
+                    colour: Backend.effect == Kind.dual && root.editing == 1 ? Backend.colour-b : Backend.colour-a;
+                    changed(c) => { Backend.set-colour(Backend.effect == Kind.dual ? root.editing : 0, c); }
+                }
+            }
+        }
+
+        if Backend.effect == Kind.reactive || Backend.effect == Kind.wave || Backend.has-brightness: Section {
+            title: "OUTPUT";
+            if Backend.effect == Kind.reactive: Field {
+                label: "Fade after a click";
+                Steps {
+                    options: [{ label: "Short", value: 1 }, { label: "Medium", value: 2 }, { label: "Long", value: 3 }, { label: "Longest", value: 4 }];
+                    value: Backend.speed;
+                    selected(v) => { Backend.set-speed(v); }
+                }
+            }
+            if Backend.effect == Kind.wave: Field {
+                label: "Direction";
+                Steps {
+                    options: [{ label: "Forwards", value: 1 }, { label: "Backwards", value: 2 }];
+                    value: Backend.direction;
+                    selected(v) => { Backend.set-direction(v); }
+                }
+            }
+            if Backend.has-brightness: Field {
+                label: "Brightness";
+                divider: false;
+                HorizontalLayout {
+                    spacing: 16px;
+                    VerticalLayout {
+                        alignment: center;
+                        Slider {
+                            width: 280px;
+                            value: Backend.brightness;
+                            maximum: 255;
+                            step: 255 / 20;
+                            changed(v) => { Backend.set-brightness(v); }
+                            released(v) => { Backend.set-brightness(v); }
+                        }
+                    }
+
+                    Text {
+                        text: round(Backend.brightness * 100 / 255) + "%";
+                        font-family: Theme.display;
+                        font-size: 14px;
+                        color: Theme.text;
+                        vertical-alignment: center;
+                    }
+                }
+            }
+        }
+    }
+}

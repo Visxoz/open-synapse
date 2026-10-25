@@ -1,0 +1,34 @@
+export component Tray inherits SystemTrayIcon {
+    icon: @image-url("assets/tray.png");
+    in property <string> status: "Razer Native";
+    tooltip: root.status;
+    in property <[string]> profiles;
+    in property <int> profile;
+    callback open();
+    callback choose(int);
+    callback quit();
+    clicked => { root.open(); }
+
+    Menu {
+        MenuItem {
+            title: "Open Razer Native";
+            activated => { root.open(); }
+        }
+
+        MenuSeparator { }
+
+        for name[i] in root.profiles: MenuItem {
+            title: name;
+            checkable: true;
+            checked: i == root.profile;
+            activated => { root.choose(i); }
+        }
+
+        MenuSeparator { }
+
+        MenuItem {
+            title: "Quit";
+            activated => { root.quit(); }
+        }
+    }
+}

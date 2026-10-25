@@ -1,0 +1,90 @@
+import { Theme } from "../theme.slint";
+import { Backend } from "../backend.slint";
+import { Field, Section, Value } from "../widgets.slint";
+
+export component InfoPage {
+    property <int> columns: 3;
+    VerticalLayout {
+        spacing: 30px;
+        alignment: start;
+        Section {
+            title: "IDENTITY";
+            Field {
+                label: "Model";
+                Value {
+                    text: Backend.name;
+                }
+            }
+
+            Field {
+                label: "Connection";
+                Value {
+                    text: Backend.link;
+                }
+            }
+
+            Field {
+                label: "Firmware";
+                Value {
+                    text: Backend.firmware;
+                }
+            }
+
+            Field {
+                label: "Serial number";
+                Value {
+                    code: true;
+                    text: Backend.serial == "" ? "-" : Backend.serial;
+                }
+            }
+
+            Field {
+                label: "USB ID";
+                Value {
+                    code: true;
+                    text: "1532:" + Backend.product-id;
+                }
+            }
+
+            Field {
+                label: "HID path";
+                divider: false;
+                Value {
+                    code: true;
+                    text: Backend.path;
+                    color: Theme.text-2;
+                }
+            }
+        }
+
+        Section {
+            title: "CAPABILITIES";
+            grid := Rectangle {
+                height: ceil(Backend.features.length / root.columns) * 36px + 10px;
+                for feature[i] in Backend.features: HorizontalLayout {
+                    x: mod(i, root.columns) * grid.width / root.columns;
+                    y: 10px + floor(i / root.columns) * 36px;
+                    width: grid.width / root.columns;
+                    height: 36px;
+                    spacing: 10px;
+                    VerticalLayout {
+                        alignment: center;
+                        Rectangle {
+                            width: 5px;
+                            height: 5px;
+                            background: Theme.accent;
+                        }
+                    }
+
+                    Text {
+                        text: feature;
+                        font-size: 13.5px;
+                        color: Theme.text-2;
+                        vertical-alignment: center;
+                        horizontal-stretch: 1;
+                    }
+                }
+            }
+        }
+    }
+}
