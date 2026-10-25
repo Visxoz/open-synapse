@@ -5,13 +5,20 @@ use std::collections::HashMap;
 use slint::Image;
 
 use super::{App, with_app};
-use crate::artwork::{self, Art};
+use crate::{
+    ArtLight,
+    artwork::{self, Art, Light},
+};
 
 pub(super) enum Picture {
     Loading,
     Ready {
         outline: Image,
         details: Image,
+        /// The logo, wheel, sides and underglow as the picture shows them lit.
+        lights: Box<[ArtLight; 4]>,
+        /// The top and bottom of the mouse's body, as fractions of the drawing.
+        body: (f32, f32),
     },
     /// No picture, or it could not be fetched; the generic drawing stands in.
     Missing,
@@ -53,10 +60,26 @@ impl App {
     }
 
     fn picture_loaded(&self, pid: u16, art: Option<Art>) {
+        let light = |light: Option<Light>| {
+            light.map_or_else(ArtLight::default, |l| ArtLight {
+                image: Image::from_rgba8(l.mask),
+                cover: Image::from_rgba8(l.cover),
+                x: l.at.0,
+                y: l.at.1,
+                right: l.right,
+            })
+        };
         let picture = match art {
             Some(art) => Picture::Ready {
                 outline: Image::from_rgba8(art.outline),
                 details: Image::from_rgba8(art.details),
+                lights: Box::new([
+                    light(art.lights.logo),
+                    light(art.lights.wheel),
+                    light(art.lights.sides),
+                    light(art.lights.under),
+                ]),
+                body: art.lights.body,
             },
             None => Picture::Missing,
         };

@@ -33,6 +33,16 @@ component DevicePanel {
         height: parent.height;
         outline-art: Backend.art-outline;
         details-art: Backend.art-details;
+        logo-light: Backend.art-logo;
+        wheel-light: Backend.art-wheel;
+        sides-light: Backend.art-sides;
+        under-light: Backend.art-under;
+        body-top: Backend.art-body-top;
+        body-bottom: Backend.art-body-bottom;
+        // Zones of the mouse's own, rather than light spilling from another.
+        own-logo: Backend.looks[0].label != "";
+        own-wheel: Backend.looks[1].label != "";
+        own-sides: Backend.looks[2].label != "";
         pending: Backend.art-pending;
         // As tall as fits, with room on both sides for the callouts.
         size: min(400px, parent.height - 80px, (parent.width - 280px) / (Backend.art-outline.width > 0 ? Backend.art-outline.width / Backend.art-outline.height : 0.6));

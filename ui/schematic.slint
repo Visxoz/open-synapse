@@ -1,5 +1,5 @@
 import { Theme } from "theme.slint";
-import { ZoneLook } from "backend.slint";
+import { ArtLight, ZoneLook } from "backend.slint";
 
 /// LED values, as in the protocol.
 export global Leds {
@@ -172,12 +172,48 @@ component Glow inherits Rectangle {
     background: @radial-gradient(circle, root.colour.with-alpha(root.colour.alpha * 0.6) 0%, root.colour.with-alpha(root.colour.alpha * 0.2) 25%, root.colour.with-alpha(0) 48%);
 }
 
+/// A part lit as the picture shows it, in the zone's colour, over the line
+/// art it hides.
+component Light {
+    in property <ArtLight> light;
+    in property <color> colour;
+    visible: root.colour.alpha > 0;
+    width: 100%;
+    height: 100%;
+    Image {
+        width: 100%;
+        height: 100%;
+        source: root.light.cover;
+        colorize: Theme.background.with-alpha(root.colour.alpha);
+    }
+
+    Image {
+        width: 100%;
+        height: 100%;
+        source: root.light.image;
+        colorize: root.colour;
+    }
+}
+
 /// The model from above, centred: its picture redrawn as line art when there
 /// is one, otherwise a generic mouse. Zones are lit in their colour,
-/// transparent when dark, and named by callouts on either side.
+/// transparent when dark, and named by callouts on either side. Where the
+/// picture shows a part lit, that part lights; elsewhere a glow stands in.
 export component Schematic {
     in property <image> outline-art;
     in property <image> details-art;
+    in property <ArtLight> logo-light;
+    in property <ArtLight> wheel-light;
+    in property <ArtLight> sides-light;
+    in property <ArtLight> under-light;
+    /// The mouse's body in the drawing, as fractions of its height.
+    in property <float> body-top: 0;
+    in property <float> body-bottom: 1;
+    /// Which zones are the mouse's own: only those get a glow where the
+    /// picture shows nothing lit.
+    in property <bool> own-logo: true;
+    in property <bool> own-wheel: true;
+    in property <bool> own-sides: true;
     in property <bool> pending;
     /// The drawing's height; the component spans its parent's width.
     in property <length> size: 400px;
@@ -195,6 +231,12 @@ export component Schematic {
     property <length> w: root.size * (root.art ? root.outline-art.width / root.outline-art.height : 0.6);
     property <length> ox: (root.width - root.w) / 2;
     property <length> oy: (root.height - root.size) / 2;
+    property <bool> lit-logo: root.art && root.logo-light.image.width > 0;
+    property <bool> lit-wheel: root.art && root.wheel-light.image.width > 0;
+    property <bool> lit-sides: root.art && root.sides-light.image.width > 0;
+    property <bool> lit-under: root.art && root.under-light.image.width > 0;
+    /// Lit sides only on the right, as on a left-handed mouse's thumb side.
+    property <bool> sides-right: root.lit-sides && root.sides-light.x > 0.5;
 
     /// A point on the drawing, as fractions of its width and height.
     function px(f: float) -> length {
@@ -202,6 +244,10 @@ export component Schematic {
     }
     function py(f: float) -> length {
         return root.oy + f * root.size;
+    }
+    /// A height down the body, as a fraction of the drawing.
+    function down(f: float) -> float {
+        return root.body-top + f * (root.body-bottom - root.body-top);
     }
 
     if !root.art && !root.pending: Generic {
@@ -225,23 +271,23 @@ export component Schematic {
         animate opacity { duration: 180ms; }
         Glow {
             x: 0.5 * root.w - self.width / 2;
-            y: 0.2 * root.size - self.height / 2;
-            height: 0.5 * root.w;
-            colour: root.wheel;
+            y: root.down(0.22) * root.size - self.height / 2;
+            height: 0.28 * root.w;
+            colour: root.lit-wheel || !root.own-wheel ? transparent : root.wheel;
         }
 
         Glow {
             x: 0.5 * root.w - self.width / 2;
-            y: 0.8 * root.size - self.height / 2;
-            height: 0.7 * root.w;
-            colour: root.logo;
+            y: root.down(0.75) * root.size - self.height / 2;
+            height: 0.4 * root.w;
+            colour: root.lit-logo || !root.own-logo ? transparent : root.logo;
         }
 
         for edge in [0, 1]: Glow {
             x: edge * root.w - self.width / 2;
-            y: 0.5 * root.size - self.height / 2;
-            height: 0.45 * root.w;
-            colour: root.sides;
+            y: root.down(0.5) * root.size - self.height / 2;
+            height: 0.22 * root.w;
+            colour: root.lit-sides || !root.own-sides ? transparent : root.sides;
         }
 
         Image {
@@ -258,20 +304,38 @@ export component Schematic {
             source: root.details-art;
             colorize: Theme.text-2;
         }
+
+        if root.lit-under: Light {
+            light: root.under-light;
+            colour: root.under;
+        }
+        if root.lit-wheel: Light {
+            light: root.wheel-light;
+            colour: root.wheel;
+        }
+        if root.lit-logo: Light {
+            light: root.logo-light;
+            colour: root.logo;
+        }
+        if root.lit-sides: Light {
+            light: root.sides-light;
+            colour: root.sides;
+        }
     }
 
     // The wheel and logo are named on the right; the DPI, sides and
-    // underglow on the left, so the drawing stays centred.
+    // underglow on the left, so the drawing stays centred, unless the sides
+    // are lit only on the right.
     if root.wheel-label != "": Callout {
-        ax: root.px(root.art ? 0.56 : 0.542);
-        ay: root.py(0.195);
+        ax: root.px(root.lit-wheel ? root.wheel-light.right + 0.03 : root.art ? 0.56 : 0.542);
+        ay: root.py(root.lit-wheel ? root.wheel-light.y : root.down(0.195));
         to: root.ox + root.w + 18px;
         label: root.wheel-label;
         strong: root.selected == Leds.scroll;
     }
     if root.logo-label != "": Callout {
-        ax: root.px(root.art ? 0.6 : 0.558);
-        ay: root.py(root.art ? 0.78 : 0.75);
+        ax: root.px(root.lit-logo ? root.logo-light.right + 0.03 : root.art ? 0.6 : 0.558);
+        ay: root.py(root.lit-logo ? root.logo-light.y : root.down(root.art ? 0.78 : 0.75));
         to: root.ox + root.w + 18px;
         label: root.logo-label;
         strong: root.selected == Leds.logo;
@@ -284,16 +348,16 @@ export component Schematic {
         label: root.dpi-label;
     }
     if root.side-label != "": Callout {
-        ax: root.px(root.art ? 0.03 : 0.15);
-        ay: root.py(root.art ? 0.5 : 0.56);
-        to: root.ox - 18px;
-        left: true;
+        ax: root.px(root.sides-right ? root.sides-light.right + 0.02 : root.art ? 0.03 : 0.15);
+        ay: root.py(root.lit-sides ? root.sides-light.y : root.down(root.art ? 0.5 : 0.56));
+        to: root.sides-right ? root.ox + root.w + 18px : root.ox - 18px;
+        left: !root.sides-right;
         label: root.side-label;
         strong: root.selected == Leds.left || root.selected == Leds.right;
     }
     if root.under-label != "": Callout {
         ax: root.px(root.art ? 0.28 : 0.2);
-        ay: root.py(root.art ? 0.93 : 0.86);
+        ay: root.py(root.down(root.art ? 0.93 : 0.86));
         to: root.ox - 18px;
         left: true;
         label: root.under-label;

@@ -26,6 +26,17 @@ export struct ZoneLook {
     b: color,
 }
 
+/// A part the model's picture shows lit, as white light to colour, with the
+/// line art it hides, and its centre and right-hand edge as fractions of the
+/// drawing; an empty image where none is lit.
+export struct ArtLight {
+    image: image,
+    cover: image,
+    x: float,
+    y: float,
+    right: float,
+}
+
 export struct ProfileItem {
     name: string,
     programs: [string],
@@ -49,6 +60,13 @@ export global Backend {
     /// The model's picture as line art, empty when there is none.
     in property <image> art-outline;
     in property <image> art-details;
+    in property <ArtLight> art-logo;
+    in property <ArtLight> art-wheel;
+    in property <ArtLight> art-sides;
+    in property <ArtLight> art-under;
+    // The mouse's body in the drawing, as fractions of its height.
+    in property <float> art-body-top: 0;
+    in property <float> art-body-bottom: 1;
     /// The picture is still being drawn, so nothing should stand in for it.
     in property <bool> art-pending;
     /// The first look for devices has finished.

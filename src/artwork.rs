@@ -13,10 +13,36 @@ const HEIGHT: usize = 640;
 /// The largest side kept while decoding, well above `HEIGHT`.
 const MAX_DECODE: usize = 1600;
 
-/// White lines on transparency, coloured by the UI.
+/// White lines on transparency, coloured by the UI, and the parts the
+/// render shows lit.
 pub struct Art {
     pub outline: SharedPixelBuffer<Rgba8Pixel>,
     pub details: SharedPixelBuffer<Rgba8Pixel>,
+    pub lights: Lights,
+}
+
+/// A part lit in the render, as white light on transparency for the UI to
+/// colour: the render's own light, stroke for stroke, halo and all.
+pub struct Light {
+    pub mask: SharedPixelBuffer<Rgba8Pixel>,
+    /// A little more than the part, to hide the line art under it while lit.
+    pub cover: SharedPixelBuffer<Rgba8Pixel>,
+    /// Its centre, as fractions of the drawing's width and height.
+    pub at: (f32, f32),
+    /// Its right-hand edge, as a fraction of the drawing's width.
+    pub right: f32,
+}
+
+#[derive(Default)]
+pub struct Lights {
+    pub logo: Option<Light>,
+    pub wheel: Option<Light>,
+    pub sides: Option<Light>,
+    /// Light around the rim, as underglow.
+    pub under: Option<Light>,
+    /// Where the mouse's body starts and ends, as fractions of the drawing's
+    /// height, leaving out its cable.
+    pub body: (f32, f32),
 }
 
 fn cache_path(pid: u16) -> PathBuf {
@@ -29,7 +55,7 @@ pub fn cached(pid: u16) -> bool {
 }
 
 /// Bumped whenever `draw` changes, so line art from an older version is redrawn.
-const ART_VERSION: u32 = 1;
+const ART_VERSION: u32 = 2;
 
 fn art_path(pid: u16) -> PathBuf {
     cache_path(pid).with_extension(format!("lines-v{ART_VERSION}.png"))
@@ -67,33 +93,51 @@ pub fn load(pid: u16, url: Option<&str>) -> io::Result<Art> {
             decoded
         }
     };
-    let art = draw(w, h, &rgba).ok_or_else(|| io::Error::other("nothing opaque to draw"))?;
-    if let Err(e) = std::fs::write(art_path(pid), pack(&art)?) {
+    let (outline, details, lit) = draw(w, h, &rgba).ok_or_else(|| io::Error::other("nothing opaque to draw"))?;
+    let packed = pack(&outline, &details, &lit)?;
+    if let Err(e) = std::fs::write(art_path(pid), &packed) {
         log::warn!("could not keep the line art: {e}");
     }
-    Ok(art)
+    // Read back from the packed layers, so a picture looks the same drawn
+    // now as loaded later.
+    unpack(&packed)
 }
 
-/// Both layers in one image: the outline in red, the details in green.
-fn pack(art: &Art) -> io::Result<Vec<u8>> {
-    let (w, h) = (art.outline.width() as usize, art.outline.height() as usize);
-    let rgba = art
-        .outline
-        .as_slice()
-        .iter()
-        .zip(art.details.as_slice())
-        .flat_map(|(o, d)| [o.a, d.a, 0, 255])
+/// The layers in one image: the outline in red, the details in green and
+/// the lit parts in blue.
+fn pack(outline: &Plane, details: &Plane, lit: &Plane) -> io::Result<Vec<u8>> {
+    let byte = |v: f32| (v * 255.).round() as u8;
+    let rgba = (0..outline.v.len())
+        .flat_map(|i| [byte(outline.v[i]), byte(details.v[i]), byte(lit.v[i]), 255])
         .collect();
-    encode(&(w, h, rgba))
+    encode(&(outline.w, outline.h, rgba))
 }
 
 fn unpack(bytes: &[u8]) -> io::Result<Art> {
     let (w, h, rgba) = decode(bytes)?;
-    let layer = |channel: usize| white(w, h, rgba.as_chunks::<4>().0.iter().map(|p| p[channel]));
-    Ok(Art {
-        outline: layer(0),
-        details: layer(1),
-    })
+    let plane = |channel: usize| Plane {
+        w,
+        h,
+        v: rgba
+            .as_chunks::<4>()
+            .0
+            .iter()
+            .map(|p| f32::from(p[channel]) / 255.)
+            .collect(),
+    };
+    Ok(art(&plane(0), &plane(1), &plane(2)))
+}
+
+fn art(outline: &Plane, details: &Plane, lit: &Plane) -> Art {
+    Art {
+        outline: pixels(outline),
+        details: pixels(details),
+        lights: lights(lit, outline),
+    }
+}
+
+fn pixels(plane: &Plane) -> SharedPixelBuffer<Rgba8Pixel> {
+    white(plane.w, plane.h, plane.v.iter().map(|&a| (a * 255.).round() as u8))
 }
 
 /// White pixels at the given alphas, for the UI to colour.
@@ -372,7 +416,8 @@ fn resample(
 /// Traces the main shape at the size it will be shown: its edge from the
 /// transparency, cut hard so soft drop shadows leave no halo, and the seams,
 /// wheel and buttons from the shading inside it, kept clear of the rim.
-fn draw(w: usize, h: usize, rgba: &[u8]) -> Option<Art> {
+/// Returns the outline, the details and the parts lit in the render.
+fn draw(w: usize, h: usize, rgba: &[u8]) -> Option<(Plane, Plane, Plane)> {
     let (mine, bounds) = main_shape(w, h, rgba)?;
     let (w, h, px) = resample(w, rgba, &mine, bounds, HEIGHT);
     let body = Plane {
@@ -414,11 +459,292 @@ fn draw(w: usize, h: usize, rgba: &[u8]) -> Option<Art> {
             0.
         }
     });
-    let pixels = |plane: &Plane| white(w, h, plane.v.iter().map(|&a| (a * 255.) as u8));
-    Some(Art {
-        outline: pixels(&outline),
-        details: pixels(&details),
-    })
+    // Razer shows its mice with their lights on: strong colour, unlike the
+    // greys and blacks of the shell. Around each such patch, the lightness
+    // shapes the part, as pale strokes stand out from their coloured halo.
+    let colours: Vec<[f32; 3]> = px
+        .as_chunks::<4>()
+        .0
+        .iter()
+        .map(|p| {
+            if p[3] < 0.9 {
+                [0.; 3]
+            } else {
+                [p[0] / p[3], p[1] / p[3], p[2] / p[3]]
+            }
+        })
+        .collect();
+    let colourful: Vec<bool> = colours
+        .iter()
+        .map(|&[r, g, b]| {
+            let (hi, lo) = (r.max(g).max(b), r.min(g).min(b));
+            let saturation = if hi > 0. { (hi - lo) / hi } else { 0. };
+            smoothstep(0.35, 0.55, saturation) * smoothstep(0.25, 0.45, hi) > 0.5
+        })
+        .collect();
+    let shell = body.v.iter().filter(|&&v| v > 0.5).count();
+    let lit_share = colourful.iter().filter(|&&c| c).count() as f32 / shell.max(1) as f32;
+    let near = if lit_share > MAX_LIT_SHARE {
+        vec![false; w * h]
+    } else {
+        dilate(w, h, &colourful, (h / 80).max(2))
+    };
+    let lit = Plane {
+        w,
+        h,
+        v: colours
+            .iter()
+            .zip(near)
+            .map(|(&[r, g, b], near)| {
+                // Kept above zero, so the patch stays whole in the cache.
+                if near {
+                    ((r.max(g).max(b) + r.min(g).min(b)) / 2.).max(1. / 255.)
+                } else {
+                    0.
+                }
+            })
+            .collect(),
+    };
+    Some((outline, details, lit))
+}
+
+/// Light over more of the mouse than this is the colour of its shell, as on
+/// a green or pink edition, rather than its LEDs.
+const MAX_LIT_SHARE: f32 = 0.15;
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Part {
+    Logo,
+    Wheel,
+    Sides,
+    Under,
+}
+
+/// Where a lit patch sits and how it is shaped, measured on the body.
+struct Patch {
+    /// Its light, summed.
+    area: f32,
+    /// Across the body at its height, 0 to 1 from left to right.
+    across: f32,
+    /// Down the body, 0 to 1 from its top, cable aside.
+    down: f32,
+    /// How much of its light lies along the rim.
+    rim: f32,
+    /// Its width against the body's widest.
+    width: f32,
+}
+
+/// Which part a lit patch is. Wide light low on the body is underglow, and
+/// narrow light along the rim a side strip. Inside, the wheel sits high and
+/// the logo low near the middle, reaching further off it on mice whose thumb
+/// side makes them lopsided; what lies well to either side is the sides.
+fn part(p: &Patch) -> Option<Part> {
+    if !(-0.02..=1.02).contains(&p.down) {
+        return None;
+    }
+    if p.width >= 0.4 {
+        return (p.down >= 0.5).then_some(Part::Under);
+    }
+    if p.rim > 0.5 {
+        return Some(if p.across < 0.3 || p.across > 0.7 {
+            Part::Sides
+        } else {
+            Part::Under
+        });
+    }
+    let off = (p.across - 0.5).abs();
+    if p.down < 0.45 && (off < 0.2 || (p.down < 0.3 && off < 0.25)) {
+        Some(Part::Wheel)
+    } else if p.down >= 0.45 && (off < 0.2 || (p.down >= 0.72 && off < 0.28)) {
+        Some(Part::Logo)
+    } else if off >= 0.2 {
+        Some(Part::Sides)
+    } else {
+        None
+    }
+}
+
+/// A patch no LED makes: wide light high on the body, or a narrower one far
+/// larger than any logo, as on a shell printed or moulded in colour.
+fn shell(p: &Patch, h: usize) -> bool {
+    p.rim <= 0.5
+        && if p.width >= 0.4 {
+            p.down < 0.5
+        } else {
+            p.area > (h * h) as f32 / 120.
+        }
+}
+
+/// The logo, wheel, sides and underglow as the render shows them lit.
+fn lights(lit: &Plane, outline: &Plane) -> Lights {
+    let (w, h) = (lit.w, lit.h);
+    // Each row's span of the mouse, between the first and last of its outline.
+    let span: Vec<Option<(usize, usize)>> = (0..h)
+        .map(|y| {
+            let row = &outline.v[y * w..][..w];
+            let first = row.iter().position(|&v| v > 0.5)?;
+            let last = row.iter().rposition(|&v| v > 0.5)?;
+            (last > first).then_some((first, last))
+        })
+        .collect();
+    // The body is the rows at least a third as wide as the widest, which
+    // leaves out a cable trailing from it.
+    let widest = span.iter().flatten().map(|(l, r)| r - l).max().unwrap_or(0);
+    let wide = |y: usize| span[y].is_some_and(|(l, r)| (r - l) * 3 >= widest);
+    let top = (0..h).find(|&y| wide(y)).unwrap_or(0);
+    let bottom = (0..h).rfind(|&y| wide(y)).unwrap_or(h - 1).max(top + 1);
+    let margin = (h / 50).max(3);
+    let on_rim = |x: usize, y: usize| {
+        span[y].is_none_or(|(l, r)| x < l + margin || x + margin > r) || y < top + margin || y + margin > bottom
+    };
+
+    let (labels, n) = label(w, h, &lit.v.iter().map(|&v| v > 0.).collect::<Vec<_>>());
+    let mut peak = vec![0f32; n];
+    for (i, &l) in labels.iter().enumerate().filter(|(_, l)| **l > 0) {
+        peak[l - 1] = peak[l - 1].max(lit.v[i]);
+    }
+    // How brightly each pixel shows, against the brightest of its patch and
+    // above the shell around it; squared, so the strokes stand clear.
+    let core = lit.map(|x, y| {
+        let i = y as usize * w + x as usize;
+        match labels[i] {
+            0 => 0.,
+            l => ((lit.v[i] / peak[l - 1] - 0.25) / 0.75).clamp(0., 1.).powi(2),
+        }
+    });
+    // Light, its centre, light along the rim, and leftmost and rightmost.
+    let mut sums = vec![(0f32, 0f32, 0f32, 0f32, w, 0usize); n];
+    for (i, &l) in labels.iter().enumerate().filter(|(_, l)| **l > 0) {
+        let (x, y, k) = (i % w, i / w, core.v[i]);
+        let s = &mut sums[l - 1];
+        s.0 += k;
+        s.1 += k * x as f32;
+        s.2 += k * y as f32;
+        if on_rim(x, y) {
+            s.3 += k;
+        }
+        if k > 0.5 {
+            s.4 = s.4.min(x);
+            s.5 = s.5.max(x);
+        }
+    }
+    let min_area = (h * h / 80_000).max(3) as f32;
+    let patches: Vec<Option<Patch>> = sums
+        .iter()
+        .map(|&(area, sx, sy, rim, left, right)| {
+            if area < min_area {
+                return None;
+            }
+            let (cx, cy) = (sx / area, sy / area);
+            let (l, r) = span[cy as usize]?;
+            Some(Patch {
+                area,
+                across: (cx - l as f32) / (r - l) as f32,
+                down: (cy - top as f32) / (bottom - top) as f32,
+                rim: rim / area,
+                width: right.saturating_sub(left) as f32 / widest.max(1) as f32,
+            })
+        })
+        .collect();
+    let body = (top as f32 / h as f32, bottom as f32 / h as f32);
+    // A patterned shell's colour cannot be told from its lights.
+    if patches.iter().flatten().any(|p| shell(p, h)) {
+        return Lights {
+            body,
+            ..Lights::default()
+        };
+    }
+    let parts: Vec<Option<Part>> = patches.iter().map(|p| p.as_ref().and_then(part)).collect();
+
+    let light = |which: Part| {
+        let of = |i: usize| labels[i] > 0 && parts[labels[i] - 1] == Some(which);
+        let mine = core.map(|x, y| {
+            let i = y as usize * w + x as usize;
+            if of(i) { core.v[i] } else { 0. }
+        });
+        let (area, sx, sy) = sums
+            .iter()
+            .zip(&parts)
+            .filter(|(_, p)| **p == Some(which))
+            .fold((0., 0., 0.), |a, (s, _)| (a.0 + s.0, a.1 + s.1, a.2 + s.2));
+        if area == 0. {
+            return None;
+        }
+        let mask = mine.map(|x, y| (mine.at(x, y) * 1.6).min(1.));
+        let shown: Vec<bool> = mask.v.iter().map(|&v| v > 0.05).collect();
+        let cover = Plane {
+            w,
+            h,
+            v: dilate(w, h, &shown, (h / 320).max(1))
+                .into_iter()
+                .map(|c| if c { 1. } else { 0. })
+                .collect(),
+        }
+        .blur();
+        let right = (0..w * h).filter(|&i| mine.v[i] > 0.5).map(|i| i % w).max()?;
+        Some(Light {
+            mask: pixels(&mask),
+            cover: pixels(&cover),
+            at: (sx / area / w as f32, sy / area / h as f32),
+            right: right as f32 / w as f32,
+        })
+    };
+    Lights {
+        logo: light(Part::Logo),
+        wheel: light(Part::Wheel),
+        sides: light(Part::Sides),
+        under: light(Part::Under),
+        body,
+    }
+}
+
+/// `on` grown by `r` pixels each way.
+fn dilate(w: usize, h: usize, on: &[bool], r: usize) -> Vec<bool> {
+    let mut rows = vec![false; w * h];
+    for y in 0..h {
+        for x in 0..w {
+            rows[y * w + x] = (x.saturating_sub(r)..(x + r + 1).min(w)).any(|x| on[y * w + x]);
+        }
+    }
+    let mut out = vec![false; w * h];
+    for y in 0..h {
+        for x in 0..w {
+            out[y * w + x] = (y.saturating_sub(r)..(y + r + 1).min(h)).any(|y| rows[y * w + x]);
+        }
+    }
+    out
+}
+
+/// Numbers each connected patch of `on` from 1, 0 elsewhere; returns the
+/// numbers and how many patches there are.
+fn label(w: usize, h: usize, on: &[bool]) -> (Vec<usize>, usize) {
+    let mut labels = vec![0; w * h];
+    let mut n = 0;
+    let mut stack = Vec::new();
+    for start in 0..w * h {
+        if !on[start] || labels[start] != 0 {
+            continue;
+        }
+        n += 1;
+        labels[start] = n;
+        stack.push(start);
+        while let Some(i) = stack.pop() {
+            let (x, y) = (i % w, i / w);
+            let neighbours = [
+                (x > 0).then(|| i - 1),
+                (x + 1 < w).then(|| i + 1),
+                (y > 0).then(|| i - w),
+                (y + 1 < h).then(|| i + w),
+            ];
+            for j in neighbours.into_iter().flatten() {
+                if on[j] && labels[j] == 0 {
+                    labels[j] = n;
+                    stack.push(j);
+                }
+            }
+        }
+    }
+    (labels, n)
 }
 
 #[cfg(test)]
@@ -439,15 +765,140 @@ mod tests {
         rgba
     }
 
+    /// `canvas` with flat patches of colour on top. A logo's strokes light
+    /// far less than its square, so a patch standing for one is kept small.
+    fn paint(mut rgba: Vec<u8>, w: usize, patches: &[([usize; 4], [u8; 3])]) -> Vec<u8> {
+        for &([x0, y0, x1, y1], [r, g, b]) in patches {
+            for y in y0..y1 {
+                for x in x0..x1 {
+                    rgba[(y * w + x) * 4..][..4].copy_from_slice(&[r, g, b, 255]);
+                }
+            }
+        }
+        rgba
+    }
+
+    fn drawn(w: usize, h: usize, rgba: &[u8]) -> Art {
+        let (outline, details, lit) = draw(w, h, rgba).unwrap();
+        art(&outline, &details, &lit)
+    }
+
     #[test]
     fn traces_the_shape_at_display_size() {
-        let art = draw(100, 100, &canvas(100, 100, &[[30, 20, 70, 80]])).unwrap();
+        let art = drawn(100, 100, &canvas(100, 100, &[[30, 20, 70, 80]]));
         assert_eq!(art.outline.height() as usize, HEIGHT);
         let ratio = art.outline.width() as f32 / art.outline.height() as f32;
         assert!((0.6..0.75).contains(&ratio), "keeps the block's proportions: {ratio}");
         let strong = |b: &SharedPixelBuffer<Rgba8Pixel>| b.as_slice().iter().filter(|p| p.a > 128).count();
         assert!(strong(&art.outline) > 1000, "the edge is traced");
         assert!(strong(&art.details) > 100, "the seam inside is found");
+        assert!(
+            art.lights.logo.is_none() && art.lights.wheel.is_none(),
+            "a grey mouse has no lights"
+        );
+    }
+
+    #[test]
+    fn finds_the_lit_logo_wheel_and_sides_where_they_are() {
+        const GREEN: [u8; 3] = [0x44, 0xD6, 0x2C];
+        let body = canvas(100, 100, &[[30, 10, 70, 90]]);
+        let rgba = paint(
+            body,
+            100,
+            &[
+                ([48, 18, 52, 30], GREEN),
+                ([48, 64, 52, 67], [0xD0, 0x30, 0xF0]),
+                ([31, 45, 33, 55], GREEN),
+            ],
+        );
+        let lights = drawn(100, 100, &rgba).lights;
+        let at = |l: &Option<Light>| l.as_ref().expect("lit").at;
+        let (wx, wy) = at(&lights.wheel);
+        assert!(
+            (wx - 0.5).abs() < 0.05 && (0.15..0.35).contains(&wy),
+            "wheel at {wx}, {wy}"
+        );
+        let (lx, ly) = at(&lights.logo);
+        assert!(
+            (lx - 0.5).abs() < 0.05 && (0.6..0.8).contains(&ly),
+            "logo at {lx}, {ly}"
+        );
+        let (sx, _) = at(&lights.sides);
+        assert!(sx < 0.2, "side at {sx}");
+        // Lit at its centre, softening at its edge, dark below it.
+        let logo = lights.logo.unwrap().mask;
+        let w = logo.width() as usize;
+        let below: Vec<u8> = ((ly * HEIGHT as f32) as usize..HEIGHT)
+            .map(|y| logo.as_slice()[y * w + (lx * w as f32) as usize].a)
+            .collect();
+        assert_eq!(below[0], 255);
+        assert!(below.iter().any(|a| (1..200).contains(a)), "a soft edge");
+        assert_eq!(below.last(), Some(&0));
+    }
+
+    #[test]
+    fn wide_light_low_on_the_rim_is_underglow() {
+        let body = canvas(100, 100, &[[30, 10, 70, 90]]);
+        let rgba = paint(
+            body,
+            100,
+            &[
+                ([30, 82, 70, 90], [0x30, 0x80, 0xFF]),
+                ([47, 62, 53, 67], [0x44, 0xD6, 0x2C]),
+            ],
+        );
+        let lights = drawn(100, 100, &rgba).lights;
+        assert!(
+            lights.under.as_ref().is_some_and(|l| l.at.1 > 0.8),
+            "the band is underglow"
+        );
+        assert!(
+            lights.logo.as_ref().is_some_and(|l| l.at.1 < 0.75),
+            "and the logo stays the logo"
+        );
+    }
+
+    #[test]
+    fn a_printed_pattern_lights_nothing() {
+        // Wide colour high on the body, as on a patterned edition.
+        let rgba = paint(
+            canvas(100, 100, &[[30, 10, 70, 90]]),
+            100,
+            &[([33, 20, 67, 40], [0x20, 0xC0, 0x40])],
+        );
+        let lights = drawn(100, 100, &rgba).lights;
+        assert!(lights.logo.is_none() && lights.wheel.is_none() && lights.under.is_none());
+    }
+
+    #[test]
+    fn a_cable_does_not_move_the_wheel_down() {
+        // The body fills the lower half; a thin cable runs up from it.
+        let rgba = paint(
+            canvas(100, 100, &[[48, 0, 52, 50], [30, 50, 70, 100]]),
+            100,
+            &[([47, 54, 53, 64], [0x44, 0xD6, 0x2C])],
+        );
+        let lights = drawn(100, 100, &rgba).lights;
+        assert!(
+            lights.wheel.is_some() && lights.logo.is_none(),
+            "high on the body is the wheel"
+        );
+        let (top, bottom) = lights.body;
+        assert!(
+            top > 0.45 && bottom > 0.95,
+            "the body starts below the cable: {top}, {bottom}"
+        );
+    }
+
+    #[test]
+    fn a_coloured_shell_is_not_lit() {
+        let rgba = paint(
+            canvas(100, 100, &[[30, 10, 70, 90]]),
+            100,
+            &[([30, 10, 70, 90], [0x30, 0xC0, 0x40])],
+        );
+        let lights = drawn(100, 100, &rgba).lights;
+        assert!(lights.logo.is_none() && lights.wheel.is_none() && lights.sides.is_none());
     }
 
     #[test]
@@ -467,10 +918,20 @@ mod tests {
 
     #[test]
     fn line_art_survives_the_cache() {
-        let art = draw(100, 100, &canvas(100, 100, &[[30, 20, 70, 80]])).unwrap();
-        let back = unpack(&pack(&art).unwrap()).unwrap();
+        let rgba = paint(
+            canvas(100, 100, &[[30, 20, 70, 80]]),
+            100,
+            &[([48, 63, 52, 66], [0, 200, 0])],
+        );
+        let (outline, details, lit) = draw(100, 100, &rgba).unwrap();
+        let art = art(&outline, &details, &lit);
+        let back = unpack(&pack(&outline, &details, &lit).unwrap()).unwrap();
         assert_eq!(back.outline.as_slice(), art.outline.as_slice());
         assert_eq!(back.details.as_slice(), art.details.as_slice());
+        // The lit layer is kept to a byte, so its light may differ by a hair.
+        let at = |a: &Art| a.lights.logo.as_ref().map(|l| l.at);
+        let ((x0, y0), (x1, y1)) = (at(&art).unwrap(), at(&back).unwrap());
+        assert!((x0 - x1).abs() < 0.01 && (y0 - y1).abs() < 0.01);
     }
 
     #[test]

@@ -118,7 +118,7 @@ fn looks(st: &State, device: &Info) -> Vec<ZoneLook> {
     vec![
         look(&[Led::Logo], &[Led::Matrix, Led::Backlight]),
         look(&[Led::Scroll], &[Led::Matrix, Led::Backlight]),
-        look(&[Led::Left, Led::Right], &[Led::Matrix]),
+        look(&[Led::Left, Led::Right], &[Led::Matrix, Led::Backlight]),
         look(&[Led::Backlight, Led::Matrix], &[]),
     ]
 }
@@ -176,13 +176,24 @@ impl App {
         b.set_link(link_label(m.link).into());
         b.set_asleep(!s.awake);
         let picture = st.pictures.get(&m.pid);
-        let (outline, details) = match picture {
-            Some(Picture::Ready { outline, details }) => (outline.clone(), details.clone()),
-            _ => Default::default(),
+        let (outline, details, [logo, wheel, sides, under], body) = match picture {
+            Some(Picture::Ready {
+                outline,
+                details,
+                lights,
+                body,
+            }) => (outline.clone(), details.clone(), (**lights).clone(), *body),
+            _ => (Default::default(), Default::default(), Default::default(), (0., 1.)),
         };
         b.set_art_pending(matches!(picture, Some(Picture::Loading)));
         b.set_art_outline(outline);
         b.set_art_details(details);
+        b.set_art_logo(logo);
+        b.set_art_wheel(wheel);
+        b.set_art_sides(sides);
+        b.set_art_under(under);
+        b.set_art_body_top(body.0);
+        b.set_art_body_bottom(body.1);
         b.set_firmware(match device.firmware {
             (0, 0) => "unknown".into(),
             (major, minor) => format!("{major}.{minor:02}").into(),
