@@ -27,11 +27,15 @@ export global Kind {
 
 /// What a zone shows `t` seconds into its effect.
 export global Preview {
+    /// A slow breath, 0 to 1 and back every four seconds.
+    pure function pulse(t: float) -> float {
+        return 0.5 - 0.5 * cos(t * 90deg);
+    }
     pure public function colour(look: ZoneLook, t: float) -> color {
         return look.kind == Kind.static || look.kind == Kind.reactive ? look.a
-            : look.kind == Kind.breath ? look.a.with-alpha(0.2 + 0.8 * (0.5 - 0.5 * cos(t * 90deg)))
-            : look.kind == Kind.dual ? look.a.mix(look.b, 0.5 - 0.5 * cos(t * 90deg))
-            : look.kind == Kind.random ? hsv(mod(t * 40, 360), 1, 1).with-alpha(0.2 + 0.8 * (0.5 - 0.5 * cos(t * 90deg)))
+            : look.kind == Kind.breath ? look.a.with-alpha(0.2 + 0.8 * pulse(t))
+            : look.kind == Kind.dual ? look.a.mix(look.b, pulse(t))
+            : look.kind == Kind.random ? hsv(mod(t * 40, 360), 1, 1).with-alpha(0.2 + 0.8 * pulse(t))
             : look.kind == Kind.spectrum || look.kind == Kind.wave ? hsv(mod(t * 60, 360), 1, 1)
             : look.kind == Kind.blinking ? (mod(t, 1) < 0.5 ? look.a : transparent)
             : look.kind == Kind.on ? Theme.accent

@@ -1,6 +1,6 @@
 import { Theme, Icons } from "../theme.slint";
 import { Backend, StageItem } from "../backend.slint";
-import { Field, Icon, Section, Slider, Steps, TextButton, TextField, Toggle } from "../widgets.slint";
+import { Field, Icon, Section, Slider, Steps, Switch, TextButton, TextField } from "../widgets.slint";
 import { DpiRuler } from "../ruler.slint";
 
 /// A fader with its value beside it, following the drag.
@@ -265,15 +265,10 @@ export component PerformancePage {
 
         if Backend.scroll-options.length > 0 && !Backend.asleep: Section {
             title: "SCROLL WHEEL";
-            for option[i] in Backend.scroll-options: Field {
+            for option[i] in Backend.scroll-options: Switch {
                 label: option.label;
-                VerticalLayout {
-                    alignment: center;
-                    Toggle {
-                        checked: Backend.scroll-values[i];
-                        toggled(on) => { Backend.set-scroll(option.value, on); }
-                    }
-                }
+                checked: Backend.scroll-values[i];
+                toggled(on) => { Backend.set-scroll(option.value, on); }
             }
         }
 
@@ -291,16 +286,11 @@ export component PerformancePage {
                 }
             }
 
-            Field {
+            Switch {
                 label: "Enhance pointer precision";
                 detail: "Windows' acceleration. Most players turn it off for consistent aim.";
-                VerticalLayout {
-                    alignment: center;
-                    Toggle {
-                        checked: Backend.pointer-precision;
-                        toggled(on) => { Backend.set-pointer-precision(on); }
-                    }
-                }
+                checked: Backend.pointer-precision;
+                toggled(on) => { Backend.set-pointer-precision(on); }
             }
 
             Field {

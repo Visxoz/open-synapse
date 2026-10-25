@@ -1,18 +1,6 @@
 import { Theme } from "../theme.slint";
 import { Backend } from "../backend.slint";
-import { Field, Section, TextButton, Toggle, Value } from "../widgets.slint";
-
-component Switch inherits Field {
-    in property <bool> checked;
-    callback toggled(bool);
-    VerticalLayout {
-        alignment: center;
-        Toggle {
-            checked: root.checked;
-            toggled(on) => { root.toggled(on); }
-        }
-    }
-}
+import { Field, Section, Switch, TextButton, Value } from "../widgets.slint";
 
 export component SettingsPage {
     VerticalLayout {

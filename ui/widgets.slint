@@ -141,10 +141,8 @@ export component Field {
         }
     }
 
-    if root.divider: Rectangle {
+    if root.divider: Hairline {
         y: parent.height - 1px;
-        height: 1px;
-        background: Theme.line;
     }
 }
 
@@ -157,10 +155,8 @@ export component Steps {
     in property <length> option-pad: 22px;
     callback selected(int);
     height: 34px;
-    Rectangle {
+    Hairline {
         y: parent.height - 1px;
-        height: 1px;
-        background: Theme.line;
     }
 
     HorizontalLayout {
@@ -235,10 +231,9 @@ export component Slider {
     callback released(float);
     property <bool> dragging;
     property <float> drag-value;
-    property <float> shown: root.dragging ? root.drag-value : clamp(root.value, root.minimum, root.maximum);
     /// The value shown, following a drag before it is released.
-    out property <float> current: root.shown;
-    property <float> ratio: (root.shown - root.minimum) / max(root.maximum - root.minimum, 0.0001);
+    out property <float> current: root.dragging ? root.drag-value : clamp(root.value, root.minimum, root.maximum);
+    property <float> ratio: (root.current - root.minimum) / max(root.maximum - root.minimum, 0.0001);
     height: 24px;
     min-width: 160px;
 
@@ -437,5 +432,18 @@ export component Reveal inherits Rectangle {
     }
     VerticalLayout {
         @children
+    }
+}
+
+/// A row with a toggle for its control.
+export component Switch inherits Field {
+    in property <bool> checked;
+    callback toggled(bool);
+    VerticalLayout {
+        alignment: center;
+        Toggle {
+            checked: root.checked;
+            toggled(on) => { root.toggled(on); }
+        }
     }
 }
