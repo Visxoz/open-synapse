@@ -8,7 +8,10 @@ use windows_sys::{
         },
         UI::{
             HiDpi::{GetDpiForMonitor, MDT_EFFECTIVE_DPI},
-            WindowsAndMessaging::{FindWindowW, GetCursorPos, GetWindowRect, IsWindowVisible, SetForegroundWindow},
+            WindowsAndMessaging::{
+                FindWindowW, GWL_EXSTYLE, GetCursorPos, GetWindowLongPtrW, GetWindowRect, IsWindowVisible, LWA_ALPHA,
+                SetForegroundWindow, SetLayeredWindowAttributes, SetWindowLongPtrW, WS_EX_LAYERED,
+            },
         },
     },
     core::w,
@@ -45,6 +48,21 @@ pub fn style_title_bar(hwnd: HWND, background: slint::Color) {
 pub fn bring_to_front(hwnd: HWND) {
     // SAFETY: `hwnd` is a live window.
     unsafe { SetForegroundWindow(hwnd) };
+}
+
+/// Makes the window `alpha` opaque, 0 to 1, as a layered window. Only for
+/// windows drawn through GDI, as the software renderer does: Direct3D's
+/// flip-model swap chains cannot present to a layered window.
+pub fn set_alpha(hwnd: HWND, alpha: f32) {
+    let layered = WS_EX_LAYERED as isize;
+    // SAFETY: `hwnd` is a live window.
+    unsafe {
+        let style = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
+        if style & layered == 0 {
+            SetWindowLongPtrW(hwnd, GWL_EXSTYLE, style | layered);
+        }
+        SetLayeredWindowAttributes(hwnd, 0, (alpha * 255.).round() as u8, LWA_ALPHA);
+    }
 }
 
 const EMPTY: RECT = RECT {

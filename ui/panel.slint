@@ -1,6 +1,6 @@
 import { Theme } from "theme.slint";
 import { Choice, DeviceItem } from "backend.slint";
-import { Caption, Dot, Gauge, Hairline, MenuRow, Steps, TextButton } from "widgets.slint";
+import { BatteryBadge, Caption, Hairline, LinkStatus, MenuRow, Steps, TextButton } from "widgets.slint";
 
 /// A caption over one control, packed for the panel.
 component Row {
@@ -35,6 +35,7 @@ export component TrayPanel inherits Window {
     default-font-family: Theme.body;
     default-font-size: 13.5px;
     width: root.panel-width;
+    height: root.panel-height;
     out property <length> panel-width: 320px;
     out property <length> panel-height: content.preferred-height;
 
@@ -56,6 +57,9 @@ export component TrayPanel inherits Window {
     in property <[string]> profiles;
     in property <int> profile;
     in property <bool> scanned;
+    /// Whether the panel is on its way in or out: the content slides and
+    /// fades with it, while Rust fades the window itself.
+    in property <bool> shown;
     property <bool> ready: root.device >= 0 && !root.asleep;
 
     callback select-device(int);
@@ -77,183 +81,160 @@ export component TrayPanel inherits Window {
         }
     }
 
-    content := VerticalLayout {
-        padding: 1px;
-        HorizontalLayout {
-            padding-left: 16px;
-            padding-right: 16px;
-            padding-top: 14px;
-            padding-bottom: 12px;
-            spacing: 12px;
-            VerticalLayout {
-                spacing: 4px;
-                horizontal-stretch: 1;
-                Text {
-                    text: root.device >= 0 ? root.name.to-uppercase() : root.scanned ? "NO MOUSE" : "";
-                    font-family: Theme.display;
-                    font-size: 14px;
-                    letter-spacing: 1.4px;
-                    color: Theme.text;
-                    overflow: elide;
-                }
-
-                if root.device >= 0: HorizontalLayout {
-                    spacing: 8px;
-                    alignment: start;
-                    VerticalLayout {
-                        alignment: center;
-                        Dot {
-                            on: !root.asleep;
-                        }
-                    }
-
-                    Text {
-                        text: root.asleep ? "Asleep" : root.link;
-                        font-size: 12.5px;
-                        color: root.asleep ? Theme.warning : Theme.text-2;
-                        vertical-alignment: center;
-                    }
-                }
-            }
-
-            if root.ready && root.has-battery: HorizontalLayout {
-                spacing: 8px;
-                horizontal-stretch: 0;
-                VerticalLayout {
-                    alignment: center;
-                    Gauge {
-                        height: 10px;
-                        cells: 5;
-                        cell-width: 4px;
-                        gap: 1.5px;
-                        level: root.battery;
-                        charging: root.charging;
-                    }
-                }
-
-                Text {
-                    text: root.battery + "%";
-                    font-family: Theme.display;
-                    font-size: 13px;
-                    color: Theme.text-2;
-                    vertical-alignment: center;
-                }
-            }
+    body := Rectangle {
+        opacity: root.shown ? 1 : 0;
+        y: root.shown ? 0 : 6px;
+        animate opacity, y {
+            duration: 160ms;
+            easing: ease-out;
         }
-
-        Hairline { }
-
-        if root.devices.length > 1: VerticalLayout {
-            VerticalLayout {
-                padding: 4px;
-                for item[i] in root.devices: MenuRow {
-                    text: item.name;
-                    detail: item.battery >= 0 ? item.battery + "%" : item.link;
-                    current: i == root.device;
-                    clicked => { root.select-device(i); }
-                }
-            }
-
-            Hairline { }
-        }
-
-        if root.device < 0 && root.scanned: HorizontalLayout {
-            padding: 16px;
-            Text {
-                text: "Plug in a Razer mouse or its receiver.";
-                font-size: 12.5px;
-                color: Theme.text-3;
-            }
-        }
-        if root.device >= 0 && root.asleep: HorizontalLayout {
-            padding: 16px;
-            Text {
-                text: "Move the mouse to wake it.";
-                font-size: 12.5px;
-                color: Theme.text-2;
-            }
-        }
-
-        if root.ready && root.stages.length > 0: Row {
-            title: "DPI STAGE";
-            PanelSteps {
-                options: root.stages;
-                value: root.active-stage;
-                selected(i) => { root.activate-stage(i); }
-            }
-        }
-        if root.ready && root.stages.length == 0 && root.dpi != "": Row {
-            title: "DPI";
-            Text {
-                height: 28px;
-                text: root.dpi;
-                font-family: Theme.display;
-                font-size: 15px;
-                color: Theme.text;
-                vertical-alignment: center;
-            }
-        }
-        if root.ready && root.poll-rates.length > 0: Row {
-            title: "POLLING RATE, HZ";
-            PanelSteps {
-                options: root.poll-rates;
-                value: root.poll;
-                selected(rate) => { root.set-poll(rate); }
-            }
-        }
-
-        if root.profiles.length > 1: VerticalLayout {
-            padding-top: 12px;
+        content := VerticalLayout {
+            padding: 1px;
             HorizontalLayout {
                 padding-left: 16px;
                 padding-right: 16px;
-                Caption {
-                    text: "PROFILE";
+                padding-top: 14px;
+                padding-bottom: 12px;
+                spacing: 12px;
+                VerticalLayout {
+                    spacing: 4px;
+                    horizontal-stretch: 1;
+                    Text {
+                        text: root.device >= 0 ? root.name.to-uppercase() : root.scanned ? "NO MOUSE" : "";
+                        font-family: Theme.display;
+                        font-size: 14px;
+                        letter-spacing: 1.4px;
+                        color: Theme.text;
+                        overflow: elide;
+                    }
+
+                    if root.device >= 0: LinkStatus {
+                        asleep: root.asleep;
+                        link: root.link;
+                    }
+                }
+
+                if root.ready && root.has-battery: BatteryBadge {
+                    horizontal-stretch: 0;
+                    level: root.battery;
+                    charging: root.charging;
+                }
+            }
+
+            Hairline { }
+
+            if root.devices.length > 1: VerticalLayout {
+                VerticalLayout {
+                    padding: 4px;
+                    for item[i] in root.devices: MenuRow {
+                        text: item.name;
+                        detail: item.battery >= 0 ? item.battery + "%" : item.link;
+                        current: i == root.device;
+                        clicked => { root.select-device(i); }
+                    }
+                }
+
+                Hairline { }
+            }
+
+            if root.device < 0 && root.scanned: HorizontalLayout {
+                padding: 16px;
+                Text {
+                    text: "Plug in a Razer mouse or its receiver.";
+                    font-size: 12.5px;
+                    color: Theme.text-3;
+                }
+            }
+            if root.device >= 0 && root.asleep: HorizontalLayout {
+                padding: 16px;
+                Text {
+                    text: "Move the mouse to wake it.";
+                    font-size: 12.5px;
+                    color: Theme.text-2;
+                }
+            }
+
+            if root.ready && root.stages.length > 0: Row {
+                title: "DPI STAGE";
+                PanelSteps {
+                    options: root.stages;
+                    value: root.active-stage;
+                    selected(i) => { root.activate-stage(i); }
+                }
+            }
+            if root.ready && root.stages.length == 0 && root.dpi != "": Row {
+                title: "DPI";
+                Text {
+                    height: 28px;
+                    text: root.dpi;
+                    font-family: Theme.display;
+                    font-size: 15px;
+                    color: Theme.text;
+                    vertical-alignment: center;
+                }
+            }
+            if root.ready && root.poll-rates.length > 0: Row {
+                title: "POLLING RATE, HZ";
+                PanelSteps {
+                    options: root.poll-rates;
+                    value: root.poll;
+                    selected(rate) => { root.set-poll(rate); }
+                }
+            }
+
+            if root.profiles.length > 1: VerticalLayout {
+                padding-top: 12px;
+                HorizontalLayout {
+                    padding-left: 16px;
+                    padding-right: 16px;
+                    Caption {
+                        text: "PROFILE";
+                    }
+                }
+
+                VerticalLayout {
+                    padding-top: 6px;
+                    padding-left: 4px;
+                    padding-right: 4px;
+                    for name[i] in root.profiles: MenuRow {
+                        text: name;
+                        current: i == root.profile;
+                        clicked => { root.select-profile(i); }
+                    }
                 }
             }
 
             VerticalLayout {
-                padding-top: 6px;
-                padding-left: 4px;
-                padding-right: 4px;
-                for name[i] in root.profiles: MenuRow {
-                    text: name;
-                    current: i == root.profile;
-                    clicked => { root.select-profile(i); }
+                padding-top: 10px;
+                Hairline { }
+            }
+
+            HorizontalLayout {
+                padding-left: 16px;
+                padding-right: 16px;
+                padding-top: 8px;
+                padding-bottom: 8px;
+                TextButton {
+                    text: "OPEN SYNAPSE";
+                    clicked => { root.open(); }
+                }
+
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+
+                TextButton {
+                    text: "QUIT";
+                    danger: true;
+                    clicked => { root.quit(); }
                 }
             }
         }
 
-        VerticalLayout {
-            padding-top: 10px;
-            Hairline { }
+        // The frame, over the content so nothing covers it.
+        Rectangle {
+            border-width: 1px;
+            border-color: Theme.line-strong;
         }
-
-        HorizontalLayout {
-            padding-left: 16px;
-            padding-right: 16px;
-            padding-top: 8px;
-            padding-bottom: 8px;
-            TextButton {
-                text: "OPEN SYNAPSE";
-                clicked => { root.open(); }
-            }
-
-            Rectangle {
-                horizontal-stretch: 1;
-            }
-
-            TextButton {
-                text: "QUIT";
-                danger: true;
-                clicked => { root.quit(); }
-            }
-        }
-    }
-
-    // The frame, over the content so nothing covers it.
-    Rectangle {
-        border-width: 1px;
-        border-color: Theme.line-strong;
     }
 }

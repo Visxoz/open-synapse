@@ -75,6 +75,7 @@ pub struct App {
     panel_hidden: Cell<Option<Instant>>,
     /// The panel has been drawn since it was last shown.
     panel_drawn: Cell<bool>,
+    panel_fade: panel::Fade,
     worker: Worker,
     state: RefCell<State>,
     save_timer: Timer,
@@ -95,6 +96,8 @@ impl App {
             panel,
             panel_hidden: Cell::new(None),
             panel_drawn: Cell::new(false),
+            // The renderer chosen at start; `SLINT_BACKEND` may pick another.
+            panel_fade: panel::Fade::new(!settings.gpu && std::env::var_os("SLINT_BACKEND").is_none()),
             worker,
             state: RefCell::new(State {
                 chosen: profiles.active,

@@ -2,10 +2,13 @@
 //! in the corner by the tray, closed by a click elsewhere, Escape or the
 //! icon again.
 
-use std::time::{Duration, Instant};
+use std::{
+    cell::Cell,
+    time::{Duration, Instant},
+};
 
 use slint::{
-    ComponentHandle, PhysicalPosition, Timer,
+    ComponentHandle, PhysicalPosition, Timer, TimerMode,
     winit_030::{EventResult, WinitWindowAccessor, winit::event::WindowEvent},
 };
 
@@ -20,6 +23,36 @@ const PARKED: PhysicalPosition = PhysicalPosition::new(-32000, -32000);
 /// How often, and how many times, placing the panel is retried.
 const PLACE_EVERY: Duration = Duration::from_millis(20);
 const PLACE_TRIES: u32 = 25;
+/// How long the panel takes to fade in or out, and the step it fades by.
+const FADE: Duration = Duration::from_millis(120);
+const FADE_STEP: Duration = Duration::from_millis(15);
+
+/// The panel's fade: how opaque its window is, where that is heading and
+/// the timer stepping it there. The content slides and fades in Slint
+/// meanwhile; the window itself fades only when `layered` allows.
+pub(super) struct Fade {
+    timer: Timer,
+    alpha: Cell<f32>,
+    target: Cell<f32>,
+    /// Layered-window alpha suits the software renderer; the GPU renderer
+    /// cannot present to a layered window, so there only the content fades.
+    layered: bool,
+}
+
+impl Fade {
+    pub(super) fn new(layered: bool) -> Self {
+        Self {
+            timer: Timer::default(),
+            alpha: Cell::new(0.),
+            target: Cell::new(0.),
+            layered,
+        }
+    }
+
+    fn closing(&self) -> bool {
+        self.target.get() == 0.
+    }
+}
 
 impl App {
     /// Closes the panel whenever another window takes the focus, and notes
@@ -53,6 +86,7 @@ impl App {
     fn show_panel(&self) {
         let window = self.panel.window();
         self.panel_drawn.set(false);
+        self.panel_fade.target.set(1.);
         window.set_position(PARKED);
         if window.show().is_ok() {
             self.sync_shown();
@@ -60,12 +94,19 @@ impl App {
         }
     }
 
+    /// Fades the panel out, then hides it.
     pub(super) fn hide_panel(&self) {
-        let window = self.panel.window();
-        if window.is_visible() {
-            let _ = window.hide();
-            self.panel_hidden.set(Some(Instant::now()));
-            self.sync_shown();
+        let fade = &self.panel_fade;
+        if !self.panel.window().is_visible() || fade.closing() {
+            return;
+        }
+        fade.target.set(0.);
+        self.panel.set_shown(false);
+        if fade.alpha.get() == 0. {
+            // Not yet placed, so nothing is showing.
+            self.panel_hidden();
+        } else {
+            self.run_fade();
         }
     }
 
@@ -79,22 +120,66 @@ impl App {
     /// Moves the panel into place and gives it the focus, which the click on
     /// the tray icon allows, once its native window exists and it has been
     /// drawn at its size; both come a moment after `show`, so this retries.
+    /// It arrives fully transparent and fades in from there.
     fn place_panel(&self, tries: u32) {
         let window = self.panel.window();
-        if !window.is_visible() {
+        if !window.is_visible() || self.panel_fade.closing() {
             return;
         }
         let (width, height) = (self.panel.get_panel_width(), self.panel.get_panel_height());
         let settled = self.panel_drawn.get() && window.size().height == (height * window.scale_factor()).round() as u32;
         match window::hwnd(window) {
             Some(hwnd) if settled || tries == 0 => {
+                if self.panel_fade.layered {
+                    window::set_alpha(hwnd, 0.);
+                }
                 if let Some((x, y)) = window::popup_origin(width, height) {
                     window.set_position(PhysicalPosition::new(x, y));
                 }
                 window::bring_to_front(hwnd);
+                self.panel.set_shown(true);
+                self.run_fade();
             }
             None if tries == 0 => log::debug!("no window handle for the panel"),
             _ => Timer::single_shot(PLACE_EVERY, move || with_app(|app| app.place_panel(tries - 1))),
         }
+    }
+
+    fn run_fade(&self) {
+        self.panel_fade
+            .timer
+            .start(TimerMode::Repeated, FADE_STEP, || with_app(|app| app.step_fade()));
+    }
+
+    /// One step of the fade towards its target; hides the window once it
+    /// has faded out.
+    fn step_fade(&self) {
+        let fade = &self.panel_fade;
+        let (alpha, target) = (fade.alpha.get(), fade.target.get());
+        let step = FADE_STEP.as_secs_f32() / FADE.as_secs_f32();
+        let alpha = if target > alpha {
+            (alpha + step).min(target)
+        } else {
+            (alpha - step).max(target)
+        };
+        fade.alpha.set(alpha);
+        if fade.layered
+            && let Some(hwnd) = window::hwnd(self.panel.window())
+        {
+            window::set_alpha(hwnd, alpha);
+        }
+        if alpha == target {
+            fade.timer.stop();
+            if fade.closing() {
+                self.panel_hidden();
+            }
+        }
+    }
+
+    fn panel_hidden(&self) {
+        let _ = self.panel.window().hide();
+        self.panel_fade.alpha.set(0.);
+        self.panel_hidden.set(Some(Instant::now()));
+        self.sync_shown();
     }
 }

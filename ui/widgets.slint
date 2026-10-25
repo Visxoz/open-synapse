@@ -448,6 +448,61 @@ export component Switch inherits Field {
     }
 }
 
+/// A dot and the connection, or that the mouse is asleep. A plain root, as
+/// a layout root inside a conditional element is placed wrongly.
+export component LinkStatus {
+    in property <bool> asleep;
+    in property <string> link;
+    HorizontalLayout {
+        spacing: 8px;
+        alignment: start;
+        VerticalLayout {
+            alignment: center;
+            Dot {
+                on: !root.asleep;
+            }
+        }
+
+        Text {
+            text: root.asleep ? "Asleep" : root.link;
+            font-size: 12.5px;
+            color: root.asleep ? Theme.warning : Theme.text-2;
+            vertical-alignment: center;
+        }
+    }
+}
+
+/// A small gauge with the percentage beside it, `inset` from the left.
+export component BatteryBadge {
+    in property <int> level;
+    in property <bool> charging;
+    in property <length> inset;
+    HorizontalLayout {
+        spacing: 8px;
+        alignment: start;
+        padding-left: root.inset;
+        VerticalLayout {
+            alignment: center;
+            Gauge {
+                height: 10px;
+                cells: 5;
+                cell-width: 4px;
+                gap: 1.5px;
+                level: root.level;
+                charging: root.charging;
+            }
+        }
+
+        Text {
+            text: root.level + "%";
+            font-family: Theme.display;
+            font-size: 13px;
+            color: Theme.text-2;
+            vertical-alignment: center;
+        }
+    }
+}
+
 /// A line in a menu that has nothing to list.
 export component MenuNote inherits HorizontalLayout {
     in property <string> text;
