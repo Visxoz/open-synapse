@@ -80,7 +80,6 @@ impl Device {
         let has = |f| m.features.contains(f);
         let power = |p| m.power.contains(p);
         let mut state = State {
-            poll: commands::get_poll(m).and_then(|q| self.query(q).ok()),
             idle: self.read(power(Power::IDLE), commands::get_idle()),
             low_battery: self.read(power(Power::LOW_BATTERY), commands::get_low_battery()),
             dongle_led: self.read(has(Features::DONGLE_LED), commands::get_dongle_led()),
@@ -103,9 +102,12 @@ impl Device {
         state
     }
 
-    /// The values that change without us: the DPI button and the battery.
+    /// The values that change without us: the DPI button, the battery, and
+    /// the polling rate other programs set. A polling rate that goes
+    /// unanswered keeps its last value.
     pub fn read_live(&self, state: &mut State) {
         let m = self.model;
+        state.poll = commands::get_poll(m).and_then(|q| self.query(q).ok()).or(state.poll);
         state.dpi = commands::get_dpi(m).and_then(|q| self.query(q).ok());
         state.stages = self.read(m.features.contains(Features::DPI_STAGES), commands::get_stages());
         state.battery = self.read(m.power.contains(Power::BATTERY), commands::battery());
