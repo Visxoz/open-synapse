@@ -2,9 +2,11 @@
 #
 #   git tag v0.1.0 && git push origin v0.1.0
 #
-# The tag must match the version in Cargo.toml. The release is created as a
-# draft so the notes can be checked before it goes live. Running the workflow
-# by hand only builds and uploads the zip as an artifact, without a release.
+# The tag must match the version in Cargo.toml. The release holds the
+# installer, the portable exe and their SHA-256 sums, which the app's updater
+# checks downloads against, and goes live at once, so every copy offers it
+# within twelve hours. Running the workflow by hand only builds the files and
+# uploads them as an artifact.
 
 name: Release
 
@@ -14,26 +16,33 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  release:
-    name: Build and publish
+  check:
+    uses: ./.github/workflows/ci.yml
+
+  # Built alongside the checks; publishing waits for both.
+  build:
+    name: Build exe and installer
     runs-on: windows-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v7
 
-      - name: Check the tag against Cargo.toml
-        if: github.event_name == 'push'
+      - name: Read the version
+        id: version
         shell: pwsh
         run: |
           $version = (Select-String -Path Cargo.toml -Pattern '^version = "(.+)"').Matches[0].Groups[1].Value
-          if ("v$version" -ne "${{ github.ref_name }}") {
+          if ("${{ github.event_name }}" -eq "push" -and "v$version" -ne "${{ github.ref_name }}") {
             throw "Cargo.toml says $version but the tag is ${{ github.ref_name }}"
           }
+          "version=$version" >> $env:GITHUB_OUTPUT
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -42,37 +51,63 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Build
-        run: cargo build --release
+        run: cargo build --release --locked
 
-      - name: Package
-        id: package
+      # Inno Setup builds the installer into dist/, beside the portable exe.
+      - name: Build installer
         shell: pwsh
         run: |
-          $version = (Select-String -Path Cargo.toml -Pattern '^version = "(.+)"').Matches[0].Groups[1].Value
-          $name = "open-synapse-v$version-windows-x64"
-          New-Item -ItemType Directory -Path "dist/$name" | Out-Null
-          Copy-Item target/release/open-synapse.exe, LICENSE, README.md -Destination "dist/$name"
-          Compress-Archive -Path "dist/$name/*" -DestinationPath "dist/$name.zip"
-          (Get-FileHash "dist/$name.zip" -Algorithm SHA256).Hash.ToLower() + "  $name.zip" |
-            Out-File -Encoding ascii "dist/$name.zip.sha256"
-          "name=$name" >> $env:GITHUB_OUTPUT
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup --yes --no-progress
+            if ($LASTEXITCODE -ne 0) { throw "could not install Inno Setup" }
+          }
+          & $iscc /Qp "/DAppVersion=${{ steps.version.outputs.version }}" installer/open-synapse.iss
+          if ($LASTEXITCODE -ne 0) { throw "the installer did not build" }
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v7
+      - name: Package
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          Copy-Item target/release/open-synapse.exe "dist/open-synapse_${version}_x64-portable.exe"
+          # The app's updater checks its download against these.
+          (Get-ChildItem dist/*.exe | ForEach-Object {
+            "$((Get-FileHash $_ -Algorithm SHA256).Hash.ToLower())  $($_.Name)"
+          }) -join "`n" | Set-Content -NoNewline -Encoding ascii dist/SHA256SUMS
+
+      - uses: actions/upload-artifact@v7
         with:
-          name: ${{ steps.package.outputs.name }}
+          name: open-synapse-${{ steps.version.outputs.version }}
           path: |
-            dist/*.zip
-            dist/*.sha256
+            dist/*.exe
+            dist/SHA256SUMS
           if-no-files-found: error
+          retention-days: 14
 
-      - name: Create draft release
-        if: github.event_name == 'push'
-        uses: softprops/action-gh-release@v3
+  publish:
+    name: Publish release
+    if: github.event_name == 'push'
+    needs: [check, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
         with:
-          name: Open Synapse ${{ github.ref_name }}
-          draft: true
-          generate_release_notes: true
-          files: |
-            dist/*.zip
-            dist/*.sha256
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: open-synapse-${{ needs.build.outputs.version }}
+          path: dist
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          previous=$(git tag --list 'v*' --sort=-v:refname | grep -vx "$TAG" | head -n 1 || true)
+          bash scripts/release-notes.sh "$previous" "$TAG" > notes.md
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag \
+            --title "Open Synapse $TAG" --notes-file notes.md \
+            dist/*.exe dist/SHA256SUMS

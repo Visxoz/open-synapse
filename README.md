@@ -81,13 +81,16 @@ No account. No sign-in. No background services or updaters. One file you can run
 
 ## Download
 
-1. Grab the latest `.zip` from the [Releases](https://github.com/Visxoz/open-synapse/releases) page.
-2. Unzip it anywhere and run `open-synapse.exe`. There is no installer.
-3. **Close Razer Synapse first** if you have it. Synapse keeps re-applying its own settings to the mouse.
+1. From the [Releases](https://github.com/Visxoz/open-synapse/releases) page, grab either:
+   - `open-synapse_<version>_x64-setup.exe` to install it for your account, with a Start menu entry. No admin rights needed.
+   - `open-synapse_<version>_x64-portable.exe` to run from anywhere, with nothing installed.
+2. **Close Razer Synapse first** if you have it. Synapse keeps re-applying its own settings to the mouse.
 
 Windows may show a SmartScreen warning the first time, because the app is not code-signed. Choose **More info** and then **Run anyway**.
 
-To remove it, delete the executable. Your settings are in `%APPDATA%\open-synapse` if you want those gone too.
+Either copy checks GitHub for new versions and updates itself from Settings, after checking the download against the release's SHA-256 sums.
+
+To remove an installed copy, use **Settings ▸ Apps** in Windows; for the portable one, delete the executable. Your settings are in `%APPDATA%\open-synapse` if you want those gone too.
 
 ## Supported mice
 
@@ -122,7 +125,7 @@ You need Rust 1.88 or newer with the MSVC toolchain.
 cargo build --release
 ```
 
-The executable is `target\release\open-synapse.exe`.
+The executable is `target\release\open-synapse.exe`. To build the installer as well, install [Inno Setup 6](https://jrsoftware.org/isinfo.php) and run `ISCC /DAppVersion=0.1.0 installer\open-synapse.iss`, which writes it to `dist\`.
 
 ## Credits
 

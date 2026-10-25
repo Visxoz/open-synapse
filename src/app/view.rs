@@ -369,5 +369,17 @@ impl App {
         b.set_auto_switch(st.settings.auto_switch);
         b.set_gpu(st.settings.gpu);
         b.set_pictures(st.settings.pictures);
+        b.set_check_updates(st.settings.check_updates);
+        b.set_update_version(
+            st.update
+                .as_ref()
+                .map_or_else(Default::default, |u| u.version.as_str().into()),
+        );
+        if !b.get_update_busy() {
+            let status = st.update.as_ref().map_or_else(String::new, |u| {
+                format!("Version {} is ready. The app restarts to install it.", u.version)
+            });
+            b.set_update_status(status.into());
+        }
     }
 }

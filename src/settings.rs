@@ -23,6 +23,8 @@ pub struct Settings {
     pub gpu: bool,
     /// Show each model as Razer pictures it, downloaded once from Razer's site.
     pub pictures: bool,
+    /// Look for a newer release on GitHub, at start and twice a day.
+    pub check_updates: bool,
     pub window: Option<WindowGeometry>,
 }
 
@@ -33,6 +35,7 @@ impl Default for Settings {
             auto_switch: true,
             gpu: false,
             pictures: true,
+            check_updates: true,
             window: None,
         }
     }

@@ -134,6 +134,13 @@ impl App {
             app.refresh_settings();
         });
 
+        on!(b, on_set_check_updates, |app, on| {
+            app.set_settings(|s| s.check_updates = on);
+            app.refresh_settings();
+            app.check_for_update();
+        });
+        on!(b, on_install_update, |app| app.install_update());
+
         on!(self.tray, on_open, |app| app.show());
         on!(self.tray, on_choose, |app, i| app.activate_profile(i as usize, true));
         on!(self.tray, on_quit, |app| app.quit());

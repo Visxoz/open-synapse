@@ -1,6 +1,7 @@
 //! Windows integration.
 
 pub mod autostart;
+pub mod hash;
 pub mod http;
 pub mod pointer;
 pub mod programs;

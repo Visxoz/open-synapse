@@ -1,6 +1,6 @@
 import { Theme } from "../theme.slint";
 import { Backend } from "../backend.slint";
-import { Field, Section, Toggle, Value } from "../widgets.slint";
+import { Field, Section, TextButton, Toggle, Value } from "../widgets.slint";
 
 component Switch inherits Field {
     in property <bool> checked;
@@ -52,8 +52,15 @@ export component SettingsPage {
                 label: "Hardware acceleration";
                 detail: "Draws the window with the graphics card instead of the processor. Uses about four times the memory and rarely looks different. Applies after a restart.";
                 checked: Backend.gpu;
-                divider: false;
                 toggled(on) => { Backend.set-gpu(on); }
+            }
+
+            Switch {
+                label: "Check for updates";
+                detail: "Looks for a new version on GitHub at start and twice a day.";
+                checked: Backend.check-updates;
+                divider: false;
+                toggled(on) => { Backend.set-check-updates(on); }
             }
         }
 
@@ -61,8 +68,19 @@ export component SettingsPage {
             title: "ABOUT";
             Field {
                 label: "Version";
+                detail: Backend.update-status;
                 Value {
                     text: Backend.version;
+                }
+
+                if Backend.update-version != "" && !Backend.update-busy: VerticalLayout {
+                    alignment: center;
+                    padding-left: 24px;
+                    TextButton {
+                        text: "UPDATE TO " + Backend.update-version;
+                        accent: true;
+                        clicked => { Backend.install-update(); }
+                    }
                 }
             }
 

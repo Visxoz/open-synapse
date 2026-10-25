@@ -6,6 +6,7 @@ mod devices;
 mod lighting;
 mod pictures;
 mod profiles;
+mod updates;
 mod view;
 
 use std::{
@@ -21,6 +22,7 @@ use crate::{
     AppWindow, Tray,
     profiles::Profiles,
     settings::Settings,
+    update::Update,
     win::programs::ForegroundHook,
     worker::{Event, Info, Request, Worker},
 };
@@ -60,6 +62,8 @@ struct State {
     /// not undo it.
     touched: Option<Instant>,
     pictures: pictures::Pictures,
+    /// A newer release found on GitHub, ready to install.
+    update: Option<Update>,
 }
 
 pub struct App {
@@ -69,6 +73,7 @@ pub struct App {
     state: RefCell<State>,
     save_timer: Timer,
     notice_timer: Timer,
+    update_timer: Timer,
     foreground: RefCell<Option<ForegroundHook>>,
 }
 
@@ -92,14 +97,17 @@ impl App {
                 params: EffectParams::default(),
                 touched: None,
                 pictures: Default::default(),
+                update: None,
             }),
             save_timer: Timer::default(),
             notice_timer: Timer::default(),
+            update_timer: Timer::default(),
             foreground: RefCell::new(None),
         });
         CURRENT.set(Rc::downgrade(&app));
         app.bind(ui);
         app.watch_foreground();
+        app.schedule_update_checks();
         app.refresh();
         app
     }

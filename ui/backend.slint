@@ -129,6 +129,11 @@ export global Backend {
     in property <bool> auto-switch;
     in property <bool> gpu;
     in property <bool> pictures;
+    in property <bool> check-updates;
+    /// A newer version ready to install, or empty; what the updater is doing.
+    in property <string> update-version;
+    in property <string> update-status;
+    in property <bool> update-busy;
 
     /// A passing message for the status bar, such as a write that failed.
     in property <string> notice;
@@ -170,4 +175,6 @@ export global Backend {
     callback set-auto-switch(bool);
     callback set-gpu(bool);
     callback set-pictures(bool);
+    callback set-check-updates(bool);
+    callback install-update();
 }

@@ -2,11 +2,14 @@
 
 use std::{ffi::c_void, io, ptr};
 
-use windows_sys::Win32::Networking::WinHttp::{
-    URL_COMPONENTS, WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_FLAG_SECURE, WINHTTP_INTERNET_SCHEME_HTTPS,
-    WINHTTP_QUERY_FLAG_NUMBER, WINHTTP_QUERY_STATUS_CODE, WinHttpCloseHandle, WinHttpConnect, WinHttpCrackUrl,
-    WinHttpOpen, WinHttpOpenRequest, WinHttpQueryHeaders, WinHttpReadData, WinHttpReceiveResponse, WinHttpSendRequest,
-    WinHttpSetTimeouts,
+use windows_sys::Win32::{
+    Foundation::ERROR_INSUFFICIENT_BUFFER,
+    Networking::WinHttp::{
+        URL_COMPONENTS, WINHTTP_ACCESS_TYPE_AUTOMATIC_PROXY, WINHTTP_FLAG_SECURE, WINHTTP_INTERNET_SCHEME_HTTPS,
+        WINHTTP_OPTION_URL, WINHTTP_QUERY_FLAG_NUMBER, WINHTTP_QUERY_STATUS_CODE, WinHttpCloseHandle, WinHttpConnect,
+        WinHttpCrackUrl, WinHttpOpen, WinHttpOpenRequest, WinHttpQueryHeaders, WinHttpQueryOption, WinHttpReadData,
+        WinHttpReceiveResponse, WinHttpSendRequest, WinHttpSetTimeouts,
+    },
 };
 
 use super::wide;
@@ -41,8 +44,8 @@ fn check(ok: i32) -> io::Result<()> {
     }
 }
 
-/// The body of `url`, which must be HTTPS, up to `limit` bytes.
-pub fn get(url: &str, limit: usize) -> io::Result<Vec<u8>> {
+/// An HTTPS URL's host, path with query, and port.
+fn crack(url: &str) -> io::Result<(String, String, u16)> {
     let url_w = wide(url);
     let mut parts = URL_COMPONENTS {
         dwStructSize: size_of::<URL_COMPONENTS>() as u32,
@@ -66,6 +69,47 @@ pub fn get(url: &str, limit: usize) -> io::Result<Vec<u8>> {
         );
         (String::from_utf16_lossy(host), String::from_utf16_lossy(path))
     };
+    Ok((host.to_ascii_lowercase(), path, parts.nPort))
+}
+
+/// Whether `host` is one of `hosts` or a subdomain of one; any host when
+/// `hosts` is empty.
+fn within(host: &str, hosts: &[&str]) -> bool {
+    hosts.is_empty()
+        || hosts.iter().any(|h| {
+            host.strip_suffix(h)
+                .is_some_and(|sub| sub.is_empty() || sub.ends_with('.'))
+        })
+}
+
+/// The URL a request ended at, after any redirects.
+fn final_url(request: &Handle) -> io::Result<String> {
+    let mut len = 0u32;
+    // SAFETY: a null buffer asks only for the length, in bytes.
+    let sized = unsafe { WinHttpQueryOption(request.0, WINHTTP_OPTION_URL, ptr::null_mut(), &mut len) };
+    let error = io::Error::last_os_error();
+    if sized != 0 || error.raw_os_error() != Some(ERROR_INSUFFICIENT_BUFFER as i32) {
+        return Err(error);
+    }
+    let mut url = vec![0u16; (len as usize).div_ceil(2)];
+    // SAFETY: `url` holds the `len` bytes WinHTTP asked for.
+    check(unsafe { WinHttpQueryOption(request.0, WINHTTP_OPTION_URL, url.as_mut_ptr().cast(), &mut len) })?;
+    url.truncate(len as usize / 2);
+    Ok(String::from_utf16_lossy(&url).trim_end_matches('\0').to_owned())
+}
+
+/// The body of `url`, which must be HTTPS, up to `limit` bytes.
+pub fn get(url: &str, limit: usize) -> io::Result<Vec<u8>> {
+    get_from(url, limit, &[], &mut |_| {})
+}
+
+/// The body of `url`, as `get`, but only from `hosts` and their subdomains,
+/// wherever redirects lead. `progress` hears the bytes received so far.
+pub fn get_from(url: &str, limit: usize, hosts: &[&str], progress: &mut dyn FnMut(usize)) -> io::Result<Vec<u8>> {
+    let (host, path, port) = crack(url)?;
+    if !within(&host, hosts) {
+        return Err(io::Error::other(format!("{host} is not an allowed host")));
+    }
 
     let agent = wide(concat!("OpenSynapse/", env!("CARGO_PKG_VERSION")));
     // SAFETY: `agent` is NUL-terminated; null proxy names use the system's.
@@ -82,7 +126,7 @@ pub fn get(url: &str, limit: usize) -> io::Result<Vec<u8>> {
     check(unsafe { WinHttpSetTimeouts(session.0, TIMEOUT_MS, TIMEOUT_MS, TIMEOUT_MS, TIMEOUT_MS) })?;
     let host_w = wide(&host);
     // SAFETY: `session` is open and `host_w` NUL-terminated.
-    let connection = Handle::new(unsafe { WinHttpConnect(session.0, host_w.as_ptr(), parts.nPort, 0) })?;
+    let connection = Handle::new(unsafe { WinHttpConnect(session.0, host_w.as_ptr(), port, 0) })?;
     let (verb, path_w) = (wide("GET"), wide(&path));
     // SAFETY: `connection` is open and the strings NUL-terminated; nulls take defaults.
     let request = Handle::new(unsafe {
@@ -100,6 +144,16 @@ pub fn get(url: &str, limit: usize) -> io::Result<Vec<u8>> {
     check(unsafe { WinHttpSendRequest(request.0, ptr::null(), 0, ptr::null(), 0, 0, 0) })?;
     // SAFETY: `request` has been sent.
     check(unsafe { WinHttpReceiveResponse(request.0, ptr::null_mut()) })?;
+
+    // WinHTTP follows redirects itself, so the host is checked where it ended.
+    if !hosts.is_empty() {
+        let (landed, ..) = crack(&final_url(&request)?)?;
+        if !within(&landed, hosts) {
+            return Err(io::Error::other(format!(
+                "redirected to {landed}, which is not allowed"
+            )));
+        }
+    }
 
     let (mut status, mut size) = (0u32, 4u32);
     // SAFETY: `status` holds the four bytes asked for.
@@ -130,5 +184,30 @@ pub fn get(url: &str, limit: usize) -> io::Result<Vec<u8>> {
         if body.len() > limit {
             return Err(io::Error::other("response too large"));
         }
+        progress(body.len());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn allows_only_the_hosts_given_and_their_subdomains() {
+        let github = &["github.com", "githubusercontent.com"];
+        assert!(within("github.com", github));
+        assert!(within("release-assets.githubusercontent.com", github));
+        assert!(!within("evilgithub.com", github));
+        assert!(!within("github.com.evil.com", github));
+        assert!(within("anything.example", &[]));
+    }
+
+    #[test]
+    fn refuses_plain_http() {
+        assert!(crack("http://github.com/").is_err());
+        assert_eq!(
+            crack("https://GitHub.com/a/b?c=1").unwrap(),
+            ("github.com".into(), "/a/b?c=1".into(), 443)
+        );
     }
 }

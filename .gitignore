@@ -1,4 +1,5 @@
 /target/
+/dist/
 
 # Local AI assistant notes
 CLAUDE.md

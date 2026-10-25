@@ -6,6 +6,7 @@ mod logger;
 mod profiles;
 mod settings;
 mod storage;
+mod update;
 mod win;
 mod worker;
 
@@ -75,6 +76,7 @@ fn main() {
     let Some(mut instance) = win::single_instance::acquire() else {
         return;
     };
+    update::clean_up();
 
     let ui = AppWindow::new().expect("window opens");
     let tray = Tray::new().expect("tray icon is created");
@@ -105,4 +107,6 @@ fn main() {
     slint::run_event_loop_until_quit().expect("event loop runs");
     drop(app);
     drop(instance);
+    // A staged update starts only once this copy no longer holds the lock.
+    update::launch_pending();
 }
