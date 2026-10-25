@@ -23,20 +23,12 @@ impl Model {
         crate::models::MODELS.iter().find(|m| m.pid == pid)
     }
 
-    pub fn all() -> &'static [Model] {
-        crate::models::MODELS
-    }
-
     /// Where Razer publishes a picture of the model from above.
     pub fn image_url(&self) -> Option<&'static str> {
         crate::images::IMAGES
             .iter()
             .find(|(pid, _)| *pid == self.pid)
             .map(|(_, url)| *url)
-    }
-
-    pub fn has_battery(&self) -> bool {
-        self.power.contains(Power::BATTERY)
     }
 
     /// The transaction ID for a command whose expected one differs from
@@ -109,6 +101,11 @@ impl DpiRange {
             Self::None => 0,
             Self::Word { max } | Self::Byte { max } => max,
         }
+    }
+
+    /// `v` within what the mouse accepts.
+    pub fn clamp(self, v: u16) -> u16 {
+        v.clamp(Self::MIN, self.max().max(Self::MIN))
     }
 }
 

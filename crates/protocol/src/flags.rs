@@ -14,10 +14,6 @@ macro_rules! flags {
                 self.0 & other.0 == other.0 && other.0 != 0
             }
 
-            pub const fn is_empty(self) -> bool {
-                self.0 == 0
-            }
-
             /// The position of a single flag.
             pub const fn index(self) -> u32 {
                 self.0.trailing_zeros()
@@ -29,13 +25,6 @@ macro_rules! flags {
 
             pub fn iter(self) -> impl Iterator<Item = Self> {
                 Self::ALL.iter().copied().filter(move |&f| self.contains(f))
-            }
-        }
-
-        impl core::ops::BitOr for $name {
-            type Output = Self;
-            fn bitor(self, rhs: Self) -> Self {
-                Self(self.0 | rhs.0)
             }
         }
     };

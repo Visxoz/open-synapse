@@ -22,7 +22,6 @@ use windows_sys::core::GUID;
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Interface {
     pub path: Vec<u16>,
-    pub vid: u16,
     pub pid: u16,
 }
 
@@ -70,15 +69,12 @@ pub fn interfaces(vid: u16) -> Vec<Interface> {
             _ => return Vec::new(),
         }
     }
-    buf.split(|&c| c == 0)
-        .filter(|p| !p.is_empty())
+    // Each path keeps its NUL; the list's own terminator is a lone one.
+    buf.split_inclusive(|&c| c == 0)
+        .filter(|p| p.len() > 1)
         .filter_map(|p| {
             let (v, pid) = usb_ids(p)?;
-            (v == vid).then(|| Interface {
-                path: p.iter().copied().chain([0]).collect(),
-                vid: v,
-                pid,
-            })
+            (v == vid).then(|| Interface { path: p.to_vec(), pid })
         })
         .collect()
 }

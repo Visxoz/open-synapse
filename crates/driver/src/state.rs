@@ -25,11 +25,13 @@ impl State {
     /// The reported values as settings, to be kept in a profile.
     pub fn settings(&self) -> Vec<Setting> {
         let mut out = Vec::new();
-        match (&self.stages, self.dpi) {
-            (Some(stages), _) => out.push(Setting::Stages(stages.clone())),
-            (None, Some(dpi)) => out.push(Setting::Dpi(dpi)),
-            _ => {}
-        }
+        // Stages carry the DPI on mice that have them.
+        out.extend(
+            self.stages
+                .clone()
+                .map(Setting::Stages)
+                .or_else(|| self.dpi.map(Setting::Dpi)),
+        );
         out.extend(self.poll.map(Setting::Poll));
         out.extend(self.idle.map(Setting::Idle));
         out.extend(self.low_battery.map(Setting::LowBattery));

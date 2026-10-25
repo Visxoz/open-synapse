@@ -101,8 +101,7 @@ pub fn get_dpi(m: &Model) -> Option<Query<Dpi>> {
 }
 
 pub fn set_dpi(m: &Model, dpi: Dpi) -> Batch {
-    let clamp = |v: u16| v.clamp(DpiRange::MIN, m.dpi.max().max(DpiRange::MIN));
-    let (x, y) = (clamp(dpi.x), clamp(dpi.y));
+    let (x, y) = (m.dpi.clamp(dpi.x), m.dpi.clamp(dpi.y));
     match m.dpi {
         DpiRange::None => Batch::EMPTY,
         DpiRange::Word { .. } => {
@@ -144,12 +143,11 @@ pub fn set_stages(m: &Model, stages: &DpiStages) -> Batch {
     args[0] = VARSTORE;
     args[1] = stages.active.min(count - 1) as u8 + 1;
     args[2] = count as u8;
-    let max = m.dpi.max().max(DpiRange::MIN);
     for (i, dpi) in stages.stages.iter().take(count).enumerate() {
         let at = 3 + i * STAGE_LEN;
         args[at] = i as u8 + 1;
-        args[at + 1..at + 3].copy_from_slice(&dpi.x.clamp(DpiRange::MIN, max).to_be_bytes());
-        args[at + 3..at + 5].copy_from_slice(&dpi.y.clamp(DpiRange::MIN, max).to_be_bytes());
+        args[at + 1..at + 3].copy_from_slice(&m.dpi.clamp(dpi.x).to_be_bytes());
+        args[at + 3..at + 5].copy_from_slice(&m.dpi.clamp(dpi.y).to_be_bytes());
     }
     Report::new(0x04, 0x06, 0x26, &args).into()
 }
@@ -176,20 +174,17 @@ pub fn get_poll(m: &Model) -> Option<Query<u16>> {
 }
 
 pub fn set_poll(m: &Model, rate: u16) -> Batch {
-    if !m.poll.rates().contains(&rate) {
-        return Batch::EMPTY;
-    }
     match m.poll {
-        Poll::None => Batch::EMPTY,
-        Poll::Classic(_) => Report::new(0x00, 0x05, 0x01, &[rate_code(1000, rate)]).into(),
+        Poll::Classic(rates) if rates.contains(&rate) => Report::new(0x00, 0x05, 0x01, &[rate_code(1000, rate)]).into(),
         // Once for the wired link and once for the wireless one.
-        Poll::Hyper(_) => {
+        Poll::Hyper(rates) if rates.contains(&rate) => {
             let code = rate_code(8000, rate);
             Batch::of(&[
                 Report::new(0x00, 0x40, 0x02, &[0x00, code]),
                 Report::new(0x00, 0x40, 0x02, &[0x01, code]),
             ])
         }
+        _ => Batch::EMPTY,
     }
 }
 
