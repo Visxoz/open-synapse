@@ -65,7 +65,7 @@ impl Profiles {
 
     pub fn save(&self) {
         // A demo mouse must not end up in the real profiles.
-        if cfg!(debug_assertions) && std::env::var_os("RAZER_DEMO").is_some() {
+        if cfg!(debug_assertions) && std::env::var_os("OPEN_SYNAPSE_DEMO").is_some() {
             return;
         }
         crate::storage::save(FILE, self);

@@ -13,7 +13,9 @@ struct StderrLogger;
 
 impl Log for StderrLogger {
     fn enabled(&self, metadata: &Metadata) -> bool {
-        metadata.level() <= log::max_level() && metadata.target().starts_with("razer")
+        let target = metadata.target();
+        metadata.level() <= log::max_level()
+            && (target.starts_with(env!("CARGO_CRATE_NAME")) || target.starts_with("razer_"))
     }
 
     fn log(&self, record: &Record) {
@@ -32,11 +34,11 @@ impl Log for StderrLogger {
     fn flush(&self) {}
 }
 
-/// `RAZER_LOG=debug` raises the level in release builds.
+/// `OPEN_SYNAPSE_LOG=debug` raises the level in release builds.
 pub fn init() {
     static LOGGER: StderrLogger = StderrLogger;
     log::set_logger(&LOGGER).expect("logger is initialised once");
-    let level = std::env::var("RAZER_LOG")
+    let level = std::env::var("OPEN_SYNAPSE_LOG")
         .ok()
         .and_then(|l| l.parse().ok())
         .unwrap_or(DEFAULT_LEVEL);

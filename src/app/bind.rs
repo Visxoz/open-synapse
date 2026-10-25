@@ -130,7 +130,7 @@ impl App {
         on!(b, on_set_pictures, |app, on| app.set_pictures(on));
         on!(b, on_set_gpu, |app, on| {
             app.set_settings(|s| s.gpu = on);
-            app.notify("Restart Razer Native to apply hardware acceleration.");
+            app.notify("Restart Open Synapse to apply hardware acceleration.");
             app.refresh_settings();
         });
 

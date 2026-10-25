@@ -9,7 +9,7 @@ use windows_sys::Win32::System::Registry::{
 use super::wide;
 
 const RUN_KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Run";
-const VALUE: &str = "Razer Native";
+const VALUE: &str = "Open Synapse";
 /// Passed when started with Windows, to begin in the tray.
 pub const TRAY_ARG: &str = "--tray";
 

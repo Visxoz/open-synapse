@@ -4,7 +4,7 @@ fn main() {
 
     let mut res = winresource::WindowsResource::new();
     res.set_icon("icons/icon.ico")
-        .set("FileDescription", "Razer Native")
-        .set("ProductName", "Razer Native");
+        .set("FileDescription", "Open Synapse")
+        .set("ProductName", "Open Synapse");
     res.compile().expect("Windows resources compile");
 }

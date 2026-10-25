@@ -67,7 +67,7 @@ pub fn get(url: &str, limit: usize) -> io::Result<Vec<u8>> {
         (String::from_utf16_lossy(host), String::from_utf16_lossy(path))
     };
 
-    let agent = wide(concat!("RazerNative/", env!("CARGO_PKG_VERSION")));
+    let agent = wide(concat!("OpenSynapse/", env!("CARGO_PKG_VERSION")));
     // SAFETY: `agent` is NUL-terminated; null proxy names use the system's.
     let session = Handle::new(unsafe {
         WinHttpOpen(

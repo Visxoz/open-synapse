@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="ui/assets/icon.png" width="96" alt="Razer Native icon">
+<img src="ui/assets/icon.png" width="96" alt="Open Synapse icon">
 
-# Razer Native
+# Open Synapse
 
 **Everything Synapse does for your Razer mouse, in a 17 MB app that stays out of your way.**
 
@@ -20,7 +20,7 @@
 
 ---
 
-Razer Native is a small, fast control panel for Razer mice on Windows. Set your DPI, polling rate, lighting, battery options and profiles without installing Razer Synapse.
+Open Synapse is a small, fast control panel for Razer mice on Windows. Set your DPI, polling rate, lighting, battery options and profiles without installing Razer Synapse.
 
 No account. No sign-in. No background services or updaters. One file you can run, and delete, whenever you like.
 
@@ -82,12 +82,12 @@ No account. No sign-in. No background services or updaters. One file you can run
 ## Download
 
 1. Grab the latest `.zip` from the [Releases](https://github.com/Visxoz/open-synapse/releases) page.
-2. Unzip it anywhere and run `razer-native.exe`. There is no installer.
+2. Unzip it anywhere and run `open-synapse.exe`. There is no installer.
 3. **Close Razer Synapse first** if you have it. Synapse keeps re-applying its own settings to the mouse.
 
 Windows may show a SmartScreen warning the first time, because the app is not code-signed. Choose **More info** and then **Run anyway**.
 
-To remove it, delete the executable. Your settings are in `%APPDATA%\razer-native` if you want those gone too.
+To remove it, delete the executable. Your settings are in `%APPDATA%\open-synapse` if you want those gone too.
 
 ## Supported mice
 
@@ -106,7 +106,7 @@ Device data comes from the [OpenRazer](https://openrazer.github.io) project. If 
 
 ## Tips
 
-- **Your own picture.** Put a top-down PNG of your mouse, named after its product ID (for example `00e6.png`), in `%APPDATA%\razer-native\images`. The app traces it into line art on the next start. The product ID is shown on the Device page.
+- **Your own picture.** Put a top-down PNG of your mouse, named after its product ID (for example `00e6.png`), in `%APPDATA%\open-synapse\images`. The app traces it into line art on the next start. The product ID is shown on the Device page.
 - **Starting hidden.** Turn on *Start with Windows* in Settings and the app opens quietly in the tray at sign-in.
 - **Two copies.** Launching the app while it is already running just brings the existing window to the front.
 
@@ -122,7 +122,7 @@ You need Rust 1.88 or newer with the MSVC toolchain.
 cargo build --release
 ```
 
-The executable is `target\release\razer-native.exe`.
+The executable is `target\release\open-synapse.exe`.
 
 ## Credits
 
@@ -133,4 +133,4 @@ The executable is `target\release\razer-native.exe`.
 
 GPL-3.0-only. The device table is derived from OpenRazer, which is GPL-2.0-or-later.
 
-Razer Native is an independent project and is not affiliated with or endorsed by Razer Inc. Razer, Synapse and the product names above are trademarks of Razer Inc.
+Open Synapse is an independent project and is not affiliated with or endorsed by Razer Inc. Razer, Synapse and the product names above are trademarks of Razer Inc.

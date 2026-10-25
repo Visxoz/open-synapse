@@ -245,11 +245,11 @@ impl Run {
 
 #[cfg(debug_assertions)]
 impl Run {
-    /// `RAZER_DEMO=00AA` shows that model as though connected, to try the
+    /// `OPEN_SYNAPSE_DEMO=00AA` shows that model as though connected, to try the
     /// pages of mice not at hand. Its settings go nowhere.
     fn demo(&mut self) {
         use razer_protocol::{Dpi, DpiStages, Features, Power};
-        let Some(model) = std::env::var("RAZER_DEMO")
+        let Some(model) = std::env::var("OPEN_SYNAPSE_DEMO")
             .ok()
             .and_then(|pid| u16::from_str_radix(&pid, 16).ok())
             .and_then(Model::find)

@@ -11,7 +11,7 @@ use windows_sys::Win32::{
 
 use super::wide;
 
-const NAME: &str = "Local\\razer-native";
+const NAME: &str = "Local\\open-synapse";
 
 /// Holds the mutex until dropped.
 pub struct Guard {
@@ -91,7 +91,7 @@ mod tests {
 
     #[test]
     fn a_second_launch_activates_the_first() {
-        let name = format!("Local\\razer-native-test-{}", std::process::id());
+        let name = format!("Local\\open-synapse-test-{}", std::process::id());
         let mut first = acquire_named(&name).expect("the first copy runs");
         let (tx, rx) = mpsc::channel();
         first.on_activate(move || {

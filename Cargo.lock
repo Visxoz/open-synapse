@@ -3077,6 +3077,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "open-synapse"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "png",
+ "raw-window-handle",
+ "razer-driver",
+ "razer-protocol",
+ "serde",
+ "serde_json",
+ "slint",
+ "slint-build",
+ "windows-sys 0.61.2",
+ "winresource",
+]
+
+[[package]]
 name = "orbclient"
 version = "0.3.55"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3529,23 +3546,6 @@ dependencies = [
  "log",
  "razer-protocol",
  "windows-sys 0.61.2",
-]
-
-[[package]]
-name = "razer-native"
-version = "0.1.0"
-dependencies = [
- "log",
- "png",
- "raw-window-handle",
- "razer-driver",
- "razer-protocol",
- "serde",
- "serde_json",
- "slint",
- "slint-build",
- "windows-sys 0.61.2",
- "winresource",
 ]
 
 [[package]]

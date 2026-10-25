@@ -1,6 +1,6 @@
 export component Tray inherits SystemTrayIcon {
     icon: @image-url("assets/tray.png");
-    in property <string> status: "Razer Native";
+    in property <string> status: "Open Synapse";
     tooltip: root.status;
     in property <[string]> profiles;
     in property <int> profile;
@@ -11,7 +11,7 @@ export component Tray inherits SystemTrayIcon {
 
     Menu {
         MenuItem {
-            title: "Open Razer Native";
+            title: "Show Open Synapse";
             activated => { root.open(); }
         }
 

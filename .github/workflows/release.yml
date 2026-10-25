@@ -49,9 +49,9 @@ jobs:
         shell: pwsh
         run: |
           $version = (Select-String -Path Cargo.toml -Pattern '^version = "(.+)"').Matches[0].Groups[1].Value
-          $name = "razer-native-v$version-windows-x64"
+          $name = "open-synapse-v$version-windows-x64"
           New-Item -ItemType Directory -Path "dist/$name" | Out-Null
-          Copy-Item target/release/razer-native.exe, LICENSE, README.md -Destination "dist/$name"
+          Copy-Item target/release/open-synapse.exe, LICENSE, README.md -Destination "dist/$name"
           Compress-Archive -Path "dist/$name/*" -DestinationPath "dist/$name.zip"
           (Get-FileHash "dist/$name.zip" -Algorithm SHA256).Hash.ToLower() + "  $name.zip" |
             Out-File -Encoding ascii "dist/$name.zip.sha256"
@@ -70,7 +70,7 @@ jobs:
         if: github.event_name == 'push'
         uses: softprops/action-gh-release@v3
         with:
-          name: Razer Native ${{ github.ref_name }}
+          name: Open Synapse ${{ github.ref_name }}
           draft: true
           generate_release_notes: true
           files: |

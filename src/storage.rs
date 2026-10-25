@@ -1,4 +1,4 @@
-//! JSON files in `%APPDATA%\razer-native`.
+//! JSON files in `%APPDATA%\open-synapse`.
 
 use std::{
     io,
@@ -11,7 +11,7 @@ pub fn data_dir() -> PathBuf {
     std::env::var_os("APPDATA")
         .map(PathBuf::from)
         .unwrap_or_else(std::env::temp_dir)
-        .join("razer-native")
+        .join("open-synapse")
 }
 
 pub fn load<T: DeserializeOwned + Default>(name: &str) -> T {

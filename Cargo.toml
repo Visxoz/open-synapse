@@ -20,7 +20,7 @@ unsafe_op_in_unsafe_fn = "deny"
 undocumented_unsafe_blocks = "deny"
 
 [package]
-name = "razer-native"
+name = "open-synapse"
 version = "0.1.0"
 description = "A native control panel for Razer mice"
 # The device tables are derived from OpenRazer, which is GPL-2.0-or-later.

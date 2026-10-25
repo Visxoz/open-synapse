@@ -153,7 +153,7 @@ impl App {
         rows(b.get_devices(), items, |m| b.set_devices(m));
         b.set_device(if st.devices.is_empty() { -1 } else { st.selected as i32 });
 
-        let mut tooltip = String::from("Razer Native");
+        let mut tooltip = String::from("Open Synapse");
         for d in &st.devices {
             let _ = write!(tooltip, "\n{}", display_name(d.model));
             if let Some(level) = d.state.battery {
