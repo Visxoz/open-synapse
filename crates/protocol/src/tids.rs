@@ -9,23 +9,16 @@ const fn t(class: u8, id: u8, tid: u8) -> TidFor {
     TidFor { class, id, tid }
 }
 
-/// Switching an LED on or off.
+// Rule sets several models share, named for the commands they cover.
 const LED_STATE: &[TidFor] = &[t(0x03, 0x00, 0x3F)];
-/// An LED's state, colour and effect.
 const CLASSIC: &[TidFor] = &[t(0x03, 0x00, 0x3F), t(0x03, 0x01, 0x3F), t(0x03, 0x02, 0x3F)];
-/// Effects and brightness, in the extended lighting commands.
 const EXTENDED: &[TidFor] = &[t(0x0F, 0x02, 0x3F), t(0x0F, 0x04, 0x3F)];
-/// DPI stages.
 const STAGES: &[TidFor] = &[t(0x04, 0x06, 0xFF)];
-/// DPI stages, the low-battery threshold and the idle time.
 const STAGES_POWER: &[TidFor] = &[t(0x04, 0x06, 0xFF), t(0x07, 0x01, 0xFF), t(0x07, 0x03, 0xFF)];
-/// The low-battery threshold and the idle time.
 const POWER: &[TidFor] = &[t(0x07, 0x01, 0xFF), t(0x07, 0x03, 0xFF)];
-/// The low-battery threshold.
 const LOW_BATTERY: &[TidFor] = &[t(0x07, 0x01, 0xFF)];
 
-/// Class, write command ID and transaction ID, per product ID, in order of
-/// product ID.
+/// Sorted by product ID, for `Model::tid_for`'s binary search.
 pub(crate) static TIDS: &[(u16, &[TidFor])] = &[
     (0x0015, LED_STATE),                                                        // Razer Naga
     (0x001F, CLASSIC),                                                          // Razer Naga Epic

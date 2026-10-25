@@ -217,6 +217,22 @@ pub struct Zone {
 }
 
 impl Zone {
+    pub const fn new(led: Led, effects: Effects, brightness: bool) -> Self {
+        Self {
+            led,
+            effects,
+            brightness,
+            name: None,
+        }
+    }
+
+    pub const fn named(self, name: &'static str) -> Self {
+        Self {
+            name: Some(name),
+            ..self
+        }
+    }
+
     pub fn label(&self) -> &'static str {
         self.name.unwrap_or(self.led.label())
     }

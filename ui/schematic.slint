@@ -42,11 +42,14 @@ export global Preview {
     }
 }
 
+/// A shape in the generic mouse's 120 by 200 viewbox, filling it.
 component Part inherits Path {
     viewbox-width: 120;
     viewbox-height: 200;
     x: 0;
     y: 0;
+    width: 100%;
+    height: 100%;
 }
 
 /// A leader line from a point on the drawing out to a label on either side.
@@ -105,59 +108,50 @@ component Generic {
     property <string> body: "M60 8 C84 8 100 30 101 70 L103 140 C104 176 86 194 60 194 C34 194 16 176 17 140 L19 70 C20 30 36 8 60 8 Z";
 
     if root.under.alpha > 0: Part {
-        width: root.width;
-        height: root.height;
         commands: root.body;
         stroke: root.under.with-alpha(0.6);
         stroke-width: 8px;
     }
 
     Part {
-        width: root.width;
-        height: root.height;
         commands: root.body;
         fill: Theme.background;
         stroke: root.selected == Leds.matrix || root.selected == Leds.backlight ? Theme.accent : Theme.text-2;
         stroke-width: 1.2px;
     }
 
+    // The centre seam, the buttons' edge and the two side buttons.
     Part {
-        width: root.width;
-        height: root.height;
         commands: "M60 8 L60 78 M19.4 80 Q60 90 100.6 80 M15.5 92 L18.6 92 L18.4 106 L15.3 106 Z M15.2 110 L18.3 110 L18.1 124 L15 124 Z";
         stroke: root.ink;
         stroke-width: 1px;
     }
 
+    // The scroll wheel.
     Part {
-        width: root.width;
-        height: root.height;
         commands: "M59 26 L61 26 A4 4 0 0 1 65 30 L65 48 A4 4 0 0 1 61 52 L59 52 A4 4 0 0 1 55 48 L55 30 A4 4 0 0 1 59 26 Z";
         fill: root.wheel;
         stroke: root.selected == Leds.scroll ? Theme.accent : Theme.text-2;
         stroke-width: 1px;
     }
 
+    // The DPI button.
     Part {
-        width: root.width;
-        height: root.height;
         commands: "M57.5 58 L62.5 58 L63.5 59 L63.5 65 L62.5 66 L57.5 66 L56.5 65 L56.5 59 Z";
         stroke: root.ink;
         stroke-width: 1px;
     }
 
+    // The logo.
     Part {
-        width: root.width;
-        height: root.height;
-        commands: "M60 143 A7 7 0 1 1 59.99 143 Z";
+        commands: "M60 143 A7 7 0 0 1 60 157 A7 7 0 0 1 60 143 Z";
         fill: root.logo;
         stroke: root.selected == Leds.logo ? Theme.accent : Theme.text-2;
         stroke-width: 1px;
     }
 
+    // Side strips, shown while lit or selected.
     if root.sides.alpha > 0 || root.selected == Leds.left || root.selected == Leds.right: Part {
-        width: root.width;
-        height: root.height;
         commands: "M101.8 96 L102.6 134 M18.2 96 L17.4 134";
         stroke: root.sides.alpha > 0 ? root.sides : Theme.accent;
         stroke-width: 3px;
@@ -180,22 +174,24 @@ component Light {
     visible: root.colour.alpha > 0;
     width: 100%;
     height: 100%;
-    Image {
+    Rectangle {
         x: root.light.left * root.width;
         y: root.light.top * root.height;
         width: root.light.width * root.width;
         height: root.light.height * root.height;
-        source: root.light.cover;
-        colorize: Theme.background.with-alpha(root.colour.alpha);
-    }
+        Image {
+            width: 100%;
+            height: 100%;
+            source: root.light.cover;
+            colorize: Theme.background.with-alpha(root.colour.alpha);
+        }
 
-    Image {
-        x: root.light.left * root.width;
-        y: root.light.top * root.height;
-        width: root.light.width * root.width;
-        height: root.light.height * root.height;
-        source: root.light.image;
-        colorize: root.colour;
+        Image {
+            width: 100%;
+            height: 100%;
+            source: root.light.image;
+            colorize: root.colour;
+        }
     }
 }
 

@@ -19,24 +19,9 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Classic,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: ON | OFF),
-                    brightness: false,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: ON | OFF),
-                    brightness: false,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Backlight,
-                    effects: set!(Effects: ON | OFF),
-                    brightness: false,
-                    name: Some("Thumb grid"),
-                },
+                Zone::new(Led::Logo, set!(Effects: ON | OFF), false),
+                Zone::new(Led::Scroll, set!(Effects: ON | OFF), false),
+                Zone::new(Led::Backlight, set!(Effects: ON | OFF), false).named("Thumb grid"),
             ],
             rgb: false,
         },
@@ -53,12 +38,7 @@ pub(crate) static MODELS: &[Model] = &[
         features: Features::NONE,
         lighting: Lighting {
             proto: LightProto::Classic,
-            zones: &[Zone {
-                led: Led::Scroll,
-                effects: set!(Effects: STATIC | SPECTRUM | OFF),
-                brightness: true,
-                name: None,
-            }],
+            zones: &[Zone::new(Led::Scroll, set!(Effects: STATIC | SPECTRUM | OFF), true)],
             rgb: true,
         },
     },
@@ -74,12 +54,7 @@ pub(crate) static MODELS: &[Model] = &[
         features: Features::NONE,
         lighting: Lighting {
             proto: LightProto::Classic,
-            zones: &[Zone {
-                led: Led::Logo,
-                effects: set!(Effects: ON | OFF),
-                brightness: false,
-                name: None,
-            }],
+            zones: &[Zone::new(Led::Logo, set!(Effects: ON | OFF), false)],
             rgb: false,
         },
     },
@@ -95,12 +70,7 @@ pub(crate) static MODELS: &[Model] = &[
         features: Features::NONE,
         lighting: Lighting {
             proto: LightProto::Classic,
-            zones: &[Zone {
-                led: Led::Scroll,
-                effects: set!(Effects: STATIC | SPECTRUM | OFF),
-                brightness: true,
-                name: None,
-            }],
+            zones: &[Zone::new(Led::Scroll, set!(Effects: STATIC | SPECTRUM | OFF), true)],
             rgb: true,
         },
     },
@@ -116,12 +86,7 @@ pub(crate) static MODELS: &[Model] = &[
         features: Features::NONE,
         lighting: Lighting {
             proto: LightProto::Classic,
-            zones: &[Zone {
-                led: Led::Scroll,
-                effects: set!(Effects: STATIC | SPECTRUM | OFF),
-                brightness: true,
-                name: None,
-            }],
+            zones: &[Zone::new(Led::Scroll, set!(Effects: STATIC | SPECTRUM | OFF), true)],
             rgb: true,
         },
     },
@@ -138,24 +103,9 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Classic,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: ON | OFF),
-                    brightness: false,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: ON | OFF),
-                    brightness: false,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Backlight,
-                    effects: set!(Effects: ON | OFF),
-                    brightness: false,
-                    name: Some("Thumb grid"),
-                },
+                Zone::new(Led::Logo, set!(Effects: ON | OFF), false),
+                Zone::new(Led::Scroll, set!(Effects: ON | OFF), false),
+                Zone::new(Led::Backlight, set!(Effects: ON | OFF), false).named("Thumb grid"),
             ],
             rgb: false,
         },
@@ -173,18 +123,8 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Classic,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: ON | OFF),
-                    brightness: false,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: ON | OFF),
-                    brightness: false,
-                    name: None,
-                },
+                Zone::new(Led::Logo, set!(Effects: ON | OFF), false),
+                Zone::new(Led::Scroll, set!(Effects: ON | OFF), false),
             ],
             rgb: false,
         },
@@ -201,12 +141,7 @@ pub(crate) static MODELS: &[Model] = &[
         features: Features::NONE,
         lighting: Lighting {
             proto: LightProto::Classic,
-            zones: &[Zone {
-                led: Led::Scroll,
-                effects: set!(Effects: ON | OFF),
-                brightness: true,
-                name: None,
-            }],
+            zones: &[Zone::new(Led::Scroll, set!(Effects: ON | OFF), true)],
             rgb: false,
         },
     },
@@ -223,18 +158,8 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Classic,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: ON | OFF),
-                    brightness: false,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: ON | OFF),
-                    brightness: false,
-                    name: None,
-                },
+                Zone::new(Led::Logo, set!(Effects: ON | OFF), false),
+                Zone::new(Led::Scroll, set!(Effects: ON | OFF), false),
             ],
             rgb: false,
         },
@@ -253,24 +178,9 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Classic,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: ON | OFF),
-                    brightness: false,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: ON | OFF),
-                    brightness: false,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Backlight,
-                    effects: set!(Effects: ON | OFF),
-                    brightness: false,
-                    name: Some("Thumb grid"),
-                },
+                Zone::new(Led::Logo, set!(Effects: ON | OFF), false),
+                Zone::new(Led::Scroll, set!(Effects: ON | OFF), false),
+                Zone::new(Led::Backlight, set!(Effects: ON | OFF), false).named("Thumb grid"),
             ],
             rgb: false,
         },
@@ -288,18 +198,12 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Classic,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BLINKING | OFF),
-                    brightness: false,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BLINKING | OFF),
-                    brightness: false,
-                    name: None,
-                },
+                Zone::new(Led::Logo, set!(Effects: STATIC | BREATH_SINGLE | BLINKING | OFF), false),
+                Zone::new(
+                    Led::Scroll,
+                    set!(Effects: STATIC | BREATH_SINGLE | BLINKING | OFF),
+                    false,
+                ),
             ],
             rgb: false,
         },
@@ -318,18 +222,8 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Classic,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: ON | OFF),
-                    brightness: false,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: ON | OFF),
-                    brightness: false,
-                    name: None,
-                },
+                Zone::new(Led::Logo, set!(Effects: ON | OFF), false),
+                Zone::new(Led::Scroll, set!(Effects: ON | OFF), false),
             ],
             rgb: false,
         },
@@ -346,12 +240,7 @@ pub(crate) static MODELS: &[Model] = &[
         features: set!(Features: DPI_READ_VARSTORE),
         lighting: Lighting {
             proto: LightProto::Classic,
-            zones: &[Zone {
-                led: Led::Scroll,
-                effects: set!(Effects: ON | OFF),
-                brightness: false,
-                name: None,
-            }],
+            zones: &[Zone::new(Led::Scroll, set!(Effects: ON | OFF), false)],
             rgb: false,
         },
     },
@@ -368,18 +257,16 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Classic,
             zones: &[
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | SPECTRUM | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Backlight,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | SPECTRUM | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(
+                    Led::Scroll,
+                    set!(Effects: STATIC | BREATH_SINGLE | SPECTRUM | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Backlight,
+                    set!(Effects: STATIC | BREATH_SINGLE | SPECTRUM | OFF),
+                    true,
+                ),
             ],
             rgb: true,
         },
@@ -397,18 +284,16 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Classic,
             zones: &[
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | SPECTRUM | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Backlight,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | SPECTRUM | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(
+                    Led::Scroll,
+                    set!(Effects: STATIC | BREATH_SINGLE | SPECTRUM | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Backlight,
+                    set!(Effects: STATIC | BREATH_SINGLE | SPECTRUM | OFF),
+                    true,
+                ),
             ],
             rgb: true,
         },
@@ -426,24 +311,9 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Extended,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: ON | OFF),
-                    brightness: false,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: ON | OFF),
-                    brightness: false,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Backlight,
-                    effects: set!(Effects: ON | OFF),
-                    brightness: false,
-                    name: Some("Thumb grid"),
-                },
+                Zone::new(Led::Logo, set!(Effects: ON | OFF), false),
+                Zone::new(Led::Scroll, set!(Effects: ON | OFF), false),
+                Zone::new(Led::Backlight, set!(Effects: ON | OFF), false).named("Thumb grid"),
             ],
             rgb: false,
         },
@@ -462,24 +332,9 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Classic,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: ON | OFF),
-                    brightness: false,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: ON | OFF),
-                    brightness: false,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Backlight,
-                    effects: set!(Effects: ON | OFF),
-                    brightness: false,
-                    name: Some("Thumb grid"),
-                },
+                Zone::new(Led::Logo, set!(Effects: ON | OFF), false),
+                Zone::new(Led::Scroll, set!(Effects: ON | OFF), false),
+                Zone::new(Led::Backlight, set!(Effects: ON | OFF), false).named("Thumb grid"),
             ],
             rgb: false,
         },
@@ -496,12 +351,7 @@ pub(crate) static MODELS: &[Model] = &[
         features: Features::NONE,
         lighting: Lighting {
             proto: LightProto::Classic,
-            zones: &[Zone {
-                led: Led::Logo,
-                effects: set!(Effects: ON | OFF),
-                brightness: false,
-                name: None,
-            }],
+            zones: &[Zone::new(Led::Logo, set!(Effects: ON | OFF), false)],
             rgb: false,
         },
     },
@@ -518,18 +368,16 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Classic,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | SPECTRUM | BLINKING | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | SPECTRUM | BLINKING | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(
+                    Led::Logo,
+                    set!(Effects: STATIC | BREATH_SINGLE | SPECTRUM | BLINKING | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Scroll,
+                    set!(Effects: STATIC | BREATH_SINGLE | SPECTRUM | BLINKING | OFF),
+                    true,
+                ),
             ],
             rgb: true,
         },
@@ -546,12 +394,11 @@ pub(crate) static MODELS: &[Model] = &[
         features: Features::NONE,
         lighting: Lighting {
             proto: LightProto::StandardMatrix,
-            zones: &[Zone {
-                led: Led::Backlight,
-                effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                brightness: false,
-                name: None,
-            }],
+            zones: &[Zone::new(
+                Led::Backlight,
+                set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                false,
+            )],
             rgb: true,
         },
     },
@@ -567,12 +414,11 @@ pub(crate) static MODELS: &[Model] = &[
         features: Features::NONE,
         lighting: Lighting {
             proto: LightProto::StandardMatrix,
-            zones: &[Zone {
-                led: Led::Backlight,
-                effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                brightness: false,
-                name: None,
-            }],
+            zones: &[Zone::new(
+                Led::Backlight,
+                set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                false,
+            )],
             rgb: true,
         },
     },
@@ -590,12 +436,11 @@ pub(crate) static MODELS: &[Model] = &[
         features: Features::NONE,
         lighting: Lighting {
             proto: LightProto::StandardMatrix,
-            zones: &[Zone {
-                led: Led::Backlight,
-                effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                brightness: true,
-                name: None,
-            }],
+            zones: &[Zone::new(
+                Led::Backlight,
+                set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                true,
+            )],
             rgb: true,
         },
     },
@@ -612,18 +457,12 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::StandardMatrix,
             zones: &[
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: ON | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Backlight,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                    brightness: false,
-                    name: None,
-                },
+                Zone::new(Led::Scroll, set!(Effects: ON | OFF), true),
+                Zone::new(
+                    Led::Backlight,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                    false,
+                ),
             ],
             rgb: true,
         },
@@ -642,12 +481,11 @@ pub(crate) static MODELS: &[Model] = &[
         features: Features::NONE,
         lighting: Lighting {
             proto: LightProto::StandardMatrix,
-            zones: &[Zone {
-                led: Led::Backlight,
-                effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                brightness: true,
-                name: None,
-            }],
+            zones: &[Zone::new(
+                Led::Backlight,
+                set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                true,
+            )],
             rgb: true,
         },
     },
@@ -666,18 +504,8 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Classic,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(Led::Logo, set!(Effects: STATIC | BREATH_SINGLE | OFF), true),
+                Zone::new(Led::Scroll, set!(Effects: STATIC | BREATH_SINGLE | OFF), true),
             ],
             rgb: false,
         },
@@ -695,24 +523,21 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::MouseExtended,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Backlight,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(
+                    Led::Logo,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Scroll,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Backlight,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                    true,
+                ),
             ],
             rgb: true,
         },
@@ -730,24 +555,21 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::MouseExtended,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Backlight,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(
+                    Led::Logo,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Scroll,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Backlight,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                    true,
+                ),
             ],
             rgb: true,
         },
@@ -765,18 +587,12 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Classic,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BLINKING | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BLINKING | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(Led::Logo, set!(Effects: STATIC | BREATH_SINGLE | BLINKING | OFF), true),
+                Zone::new(
+                    Led::Scroll,
+                    set!(Effects: STATIC | BREATH_SINGLE | BLINKING | OFF),
+                    true,
+                ),
             ],
             rgb: false,
         },
@@ -794,30 +610,26 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Extended,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Left,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Right,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(
+                    Led::Logo,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Scroll,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Left,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Right,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
             ],
             rgb: true,
         },
@@ -835,30 +647,26 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Extended,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Left,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Right,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(
+                    Led::Logo,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Scroll,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Left,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Right,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
             ],
             rgb: true,
         },
@@ -876,18 +684,16 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Classic,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | SPECTRUM | BLINKING | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | SPECTRUM | BLINKING | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(
+                    Led::Logo,
+                    set!(Effects: STATIC | BREATH_SINGLE | SPECTRUM | BLINKING | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Scroll,
+                    set!(Effects: STATIC | BREATH_SINGLE | SPECTRUM | BLINKING | OFF),
+                    true,
+                ),
             ],
             rgb: true,
         },
@@ -905,18 +711,16 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Extended,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(
+                    Led::Logo,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Scroll,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                    true,
+                ),
             ],
             rgb: true,
         },
@@ -933,12 +737,7 @@ pub(crate) static MODELS: &[Model] = &[
         features: Features::NONE,
         lighting: Lighting {
             proto: LightProto::Classic,
-            zones: &[Zone {
-                led: Led::Logo,
-                effects: set!(Effects: ON | OFF),
-                brightness: false,
-                name: None,
-            }],
+            zones: &[Zone::new(Led::Logo, set!(Effects: ON | OFF), false)],
             rgb: false,
         },
     },
@@ -955,30 +754,26 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Extended,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Left,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Right,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(
+                    Led::Logo,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Scroll,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Left,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Right,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
             ],
             rgb: true,
         },
@@ -1009,18 +804,16 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Extended,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(
+                    Led::Logo,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Scroll,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                    true,
+                ),
             ],
             rgb: true,
         },
@@ -1037,12 +830,11 @@ pub(crate) static MODELS: &[Model] = &[
         features: set!(Features: DPI_STAGES),
         lighting: Lighting {
             proto: LightProto::Extended,
-            zones: &[Zone {
-                led: Led::Logo,
-                effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                brightness: true,
-                name: None,
-            }],
+            zones: &[Zone::new(
+                Led::Logo,
+                set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                true,
+            )],
             rgb: true,
         },
     },
@@ -1058,12 +850,7 @@ pub(crate) static MODELS: &[Model] = &[
         features: Features::NONE,
         lighting: Lighting {
             proto: LightProto::NagaTrinity,
-            zones: &[Zone {
-                led: Led::Matrix,
-                effects: set!(Effects: STATIC),
-                brightness: true,
-                name: None,
-            }],
+            zones: &[Zone::new(Led::Matrix, set!(Effects: STATIC), true)],
             rgb: true,
         },
     },
@@ -1079,12 +866,12 @@ pub(crate) static MODELS: &[Model] = &[
         features: Features::NONE,
         lighting: Lighting {
             proto: LightProto::Extended,
-            zones: &[Zone {
-                led: Led::Logo,
-                effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                brightness: true,
-                name: Some("Underglow"),
-            }],
+            zones: &[Zone::new(
+                Led::Logo,
+                set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                true,
+            )
+            .named("Underglow")],
             rgb: true,
         },
     },
@@ -1100,12 +887,12 @@ pub(crate) static MODELS: &[Model] = &[
         features: Features::NONE,
         lighting: Lighting {
             proto: LightProto::Extended,
-            zones: &[Zone {
-                led: Led::Logo,
-                effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                brightness: true,
-                name: Some("Underglow"),
-            }],
+            zones: &[Zone::new(
+                Led::Logo,
+                set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                true,
+            )
+            .named("Underglow")],
             rgb: true,
         },
     },
@@ -1122,30 +909,26 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Extended,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Left,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Right,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(
+                    Led::Logo,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Scroll,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Left,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Right,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
             ],
             rgb: true,
         },
@@ -1163,18 +946,8 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Extended,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(Led::Logo, set!(Effects: STATIC | BREATH_SINGLE | OFF), true),
+                Zone::new(Led::Scroll, set!(Effects: STATIC | BREATH_SINGLE | OFF), true),
             ],
             rgb: false,
         },
@@ -1192,30 +965,26 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Extended,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Left,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Right,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(
+                    Led::Logo,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Scroll,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Left,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Right,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
             ],
             rgb: true,
         },
@@ -1233,30 +1002,26 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Extended,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Left,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Right,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(
+                    Led::Logo,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Scroll,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Left,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Right,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
             ],
             rgb: true,
         },
@@ -1274,18 +1039,8 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Extended,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(Led::Logo, set!(Effects: STATIC | BREATH_SINGLE | OFF), true),
+                Zone::new(Led::Scroll, set!(Effects: STATIC | BREATH_SINGLE | OFF), true),
             ],
             rgb: false,
         },
@@ -1303,18 +1058,16 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Extended,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(
+                    Led::Logo,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Scroll,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                    true,
+                ),
             ],
             rgb: true,
         },
@@ -1332,18 +1085,16 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Extended,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(
+                    Led::Logo,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Scroll,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                    true,
+                ),
             ],
             rgb: true,
         },
@@ -1374,12 +1125,11 @@ pub(crate) static MODELS: &[Model] = &[
         features: set!(Features: DPI_STAGES),
         lighting: Lighting {
             proto: LightProto::Extended,
-            zones: &[Zone {
-                led: Led::Logo,
-                effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                brightness: true,
-                name: None,
-            }],
+            zones: &[Zone::new(
+                Led::Logo,
+                set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                true,
+            )],
             rgb: true,
         },
     },
@@ -1395,12 +1145,11 @@ pub(crate) static MODELS: &[Model] = &[
         features: set!(Features: DPI_STAGES),
         lighting: Lighting {
             proto: LightProto::Extended,
-            zones: &[Zone {
-                led: Led::Logo,
-                effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                brightness: true,
-                name: None,
-            }],
+            zones: &[Zone::new(
+                Led::Logo,
+                set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                true,
+            )],
             rgb: true,
         },
     },
@@ -1416,12 +1165,11 @@ pub(crate) static MODELS: &[Model] = &[
         features: set!(Features: DPI_STAGES),
         lighting: Lighting {
             proto: LightProto::Extended,
-            zones: &[Zone {
-                led: Led::Logo,
-                effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                brightness: true,
-                name: None,
-            }],
+            zones: &[Zone::new(
+                Led::Logo,
+                set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                true,
+            )],
             rgb: true,
         },
     },
@@ -1437,12 +1185,11 @@ pub(crate) static MODELS: &[Model] = &[
         features: set!(Features: DPI_STAGES),
         lighting: Lighting {
             proto: LightProto::Extended,
-            zones: &[Zone {
-                led: Led::Logo,
-                effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                brightness: true,
-                name: None,
-            }],
+            zones: &[Zone::new(
+                Led::Logo,
+                set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                true,
+            )],
             rgb: true,
         },
     },
@@ -1458,12 +1205,11 @@ pub(crate) static MODELS: &[Model] = &[
         features: set!(Features: DPI_STAGES),
         lighting: Lighting {
             proto: LightProto::Extended,
-            zones: &[Zone {
-                led: Led::Logo,
-                effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                brightness: true,
-                name: None,
-            }],
+            zones: &[Zone::new(
+                Led::Logo,
+                set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                true,
+            )],
             rgb: true,
         },
     },
@@ -1507,18 +1253,16 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Extended,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(
+                    Led::Logo,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Scroll,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                    true,
+                ),
             ],
             rgb: true,
         },
@@ -1536,18 +1280,16 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Extended,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(
+                    Led::Logo,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Scroll,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                    true,
+                ),
             ],
             rgb: true,
         },
@@ -1565,30 +1307,26 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Extended,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Left,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Right,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(
+                    Led::Logo,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Scroll,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Left,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Right,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
             ],
             rgb: true,
         },
@@ -1606,30 +1344,26 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Extended,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Left,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Right,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(
+                    Led::Logo,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Scroll,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Left,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Right,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
             ],
             rgb: true,
         },
@@ -1646,12 +1380,12 @@ pub(crate) static MODELS: &[Model] = &[
         features: set!(Features: DPI_STAGES),
         lighting: Lighting {
             proto: LightProto::Extended,
-            zones: &[Zone {
-                led: Led::Logo,
-                effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                brightness: true,
-                name: Some("Logo and underglow"),
-            }],
+            zones: &[Zone::new(
+                Led::Logo,
+                set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                true,
+            )
+            .named("Logo and underglow")],
             rgb: true,
         },
     },
@@ -1667,12 +1401,11 @@ pub(crate) static MODELS: &[Model] = &[
         features: set!(Features: DPI_STAGES),
         lighting: Lighting {
             proto: LightProto::Extended,
-            zones: &[Zone {
-                led: Led::Logo,
-                effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                brightness: true,
-                name: None,
-            }],
+            zones: &[Zone::new(
+                Led::Logo,
+                set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                true,
+            )],
             rgb: true,
         },
     },
@@ -1689,24 +1422,21 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Extended,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Right,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(
+                    Led::Logo,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Scroll,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Right,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
             ],
             rgb: true,
         },
@@ -1724,24 +1454,21 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::NagaPro,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Matrix,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                    brightness: false,
-                    name: None,
-                },
+                Zone::new(
+                    Led::Logo,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Scroll,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Matrix,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                    false,
+                ),
             ],
             rgb: true,
         },
@@ -1759,24 +1486,21 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::NagaPro,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Matrix,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                    brightness: false,
-                    name: None,
-                },
+                Zone::new(
+                    Led::Logo,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Scroll,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Matrix,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                    false,
+                ),
             ],
             rgb: true,
         },
@@ -1793,12 +1517,11 @@ pub(crate) static MODELS: &[Model] = &[
         features: set!(Features: DPI_STAGES),
         lighting: Lighting {
             proto: LightProto::Extended,
-            zones: &[Zone {
-                led: Led::Logo,
-                effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                brightness: true,
-                name: None,
-            }],
+            zones: &[Zone::new(
+                Led::Logo,
+                set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                true,
+            )],
             rgb: true,
         },
     },
@@ -1841,18 +1564,16 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Extended,
             zones: &[
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Left,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(
+                    Led::Scroll,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Left,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
             ],
             rgb: true,
         },
@@ -1869,12 +1590,7 @@ pub(crate) static MODELS: &[Model] = &[
         features: Features::NONE,
         lighting: Lighting {
             proto: LightProto::Extended,
-            zones: &[Zone {
-                led: Led::Logo,
-                effects: set!(Effects: STATIC | BREATH_SINGLE | OFF),
-                brightness: true,
-                name: None,
-            }],
+            zones: &[Zone::new(Led::Logo, set!(Effects: STATIC | BREATH_SINGLE | OFF), true)],
             rgb: false,
         },
     },
@@ -1891,24 +1607,9 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Extended,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Matrix,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(Led::Logo, set!(Effects: STATIC | SPECTRUM | WAVE), true),
+                Zone::new(Led::Scroll, set!(Effects: STATIC | SPECTRUM | WAVE), true),
+                Zone::new(Led::Matrix, set!(Effects: STATIC | SPECTRUM | WAVE), true),
             ],
             rgb: true,
         },
@@ -1975,12 +1676,11 @@ pub(crate) static MODELS: &[Model] = &[
         features: set!(Features: DPI_STAGES),
         lighting: Lighting {
             proto: LightProto::Extended,
-            zones: &[Zone {
-                led: Led::Logo,
-                effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                brightness: true,
-                name: None,
-            }],
+            zones: &[Zone::new(
+                Led::Logo,
+                set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                true,
+            )],
             rgb: true,
         },
     },
@@ -1996,12 +1696,11 @@ pub(crate) static MODELS: &[Model] = &[
         features: set!(Features: DPI_STAGES),
         lighting: Lighting {
             proto: LightProto::Extended,
-            zones: &[Zone {
-                led: Led::Logo,
-                effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                brightness: true,
-                name: None,
-            }],
+            zones: &[Zone::new(
+                Led::Logo,
+                set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                true,
+            )],
             rgb: true,
         },
     },
@@ -2042,18 +1741,16 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::NagaV2Pro,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Matrix,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                    brightness: false,
-                    name: None,
-                },
+                Zone::new(
+                    Led::Logo,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Matrix,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                    false,
+                ),
             ],
             rgb: true,
         },
@@ -2071,18 +1768,16 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::NagaV2Pro,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Matrix,
-                    effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
-                    brightness: false,
-                    name: None,
-                },
+                Zone::new(
+                    Led::Logo,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                    true,
+                ),
+                Zone::new(
+                    Led::Matrix,
+                    set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | REACTIVE | OFF),
+                    false,
+                ),
             ],
             rgb: true,
         },
@@ -2100,24 +1795,9 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Extended,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Matrix,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(Led::Logo, set!(Effects: STATIC | SPECTRUM | WAVE | OFF), true),
+                Zone::new(Led::Scroll, set!(Effects: STATIC | SPECTRUM | WAVE | OFF), true),
+                Zone::new(Led::Matrix, set!(Effects: STATIC | SPECTRUM | WAVE | OFF), true),
             ],
             rgb: true,
         },
@@ -2135,24 +1815,9 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Extended,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Matrix,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(Led::Logo, set!(Effects: STATIC | SPECTRUM | WAVE | OFF), true),
+                Zone::new(Led::Scroll, set!(Effects: STATIC | SPECTRUM | WAVE | OFF), true),
+                Zone::new(Led::Matrix, set!(Effects: STATIC | SPECTRUM | WAVE | OFF), true),
             ],
             rgb: true,
         },
@@ -2170,24 +1835,9 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Extended,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Matrix,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(Led::Logo, set!(Effects: STATIC | SPECTRUM | WAVE | OFF), true),
+                Zone::new(Led::Scroll, set!(Effects: STATIC | SPECTRUM | WAVE | OFF), true),
+                Zone::new(Led::Matrix, set!(Effects: STATIC | SPECTRUM | WAVE | OFF), true),
             ],
             rgb: true,
         },
@@ -2205,24 +1855,9 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Extended,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Matrix,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(Led::Logo, set!(Effects: STATIC | SPECTRUM | WAVE | OFF), true),
+                Zone::new(Led::Scroll, set!(Effects: STATIC | SPECTRUM | WAVE | OFF), true),
+                Zone::new(Led::Matrix, set!(Effects: STATIC | SPECTRUM | WAVE | OFF), true),
             ],
             rgb: true,
         },
@@ -2318,12 +1953,11 @@ pub(crate) static MODELS: &[Model] = &[
         features: set!(Features: DPI_STAGES),
         lighting: Lighting {
             proto: LightProto::Extended,
-            zones: &[Zone {
-                led: Led::Scroll,
-                effects: set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
-                brightness: true,
-                name: None,
-            }],
+            zones: &[Zone::new(
+                Led::Scroll,
+                set!(Effects: STATIC | BREATH_SINGLE | BREATH_DUAL | BREATH_RANDOM | SPECTRUM | WAVE | REACTIVE | OFF),
+                true,
+            )],
             rgb: true,
         },
     },
@@ -2437,12 +2071,11 @@ pub(crate) static MODELS: &[Model] = &[
         features: set!(Features: DPI_STAGES),
         lighting: Lighting {
             proto: LightProto::Extended,
-            zones: &[Zone {
-                led: Led::Matrix,
-                effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                brightness: true,
-                name: None,
-            }],
+            zones: &[Zone::new(
+                Led::Matrix,
+                set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
+                true,
+            )],
             rgb: true,
         },
     },
@@ -2458,12 +2091,11 @@ pub(crate) static MODELS: &[Model] = &[
         features: set!(Features: DPI_STAGES),
         lighting: Lighting {
             proto: LightProto::Extended,
-            zones: &[Zone {
-                led: Led::Matrix,
-                effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                brightness: true,
-                name: None,
-            }],
+            zones: &[Zone::new(
+                Led::Matrix,
+                set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
+                true,
+            )],
             rgb: true,
         },
     },
@@ -2480,24 +2112,9 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Extended,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Matrix,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(Led::Logo, set!(Effects: STATIC | SPECTRUM | WAVE | OFF), true),
+                Zone::new(Led::Scroll, set!(Effects: STATIC | SPECTRUM | WAVE | OFF), true),
+                Zone::new(Led::Matrix, set!(Effects: STATIC | SPECTRUM | WAVE | OFF), true),
             ],
             rgb: true,
         },
@@ -2515,24 +2132,9 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Extended,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Matrix,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(Led::Logo, set!(Effects: STATIC | SPECTRUM | WAVE | OFF), true),
+                Zone::new(Led::Scroll, set!(Effects: STATIC | SPECTRUM | WAVE | OFF), true),
+                Zone::new(Led::Matrix, set!(Effects: STATIC | SPECTRUM | WAVE | OFF), true),
             ],
             rgb: true,
         },
@@ -2550,24 +2152,9 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Extended,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Matrix,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(Led::Logo, set!(Effects: STATIC | SPECTRUM | WAVE | OFF), true),
+                Zone::new(Led::Scroll, set!(Effects: STATIC | SPECTRUM | WAVE | OFF), true),
+                Zone::new(Led::Matrix, set!(Effects: STATIC | SPECTRUM | WAVE | OFF), true),
             ],
             rgb: true,
         },
@@ -2584,12 +2171,11 @@ pub(crate) static MODELS: &[Model] = &[
         features: set!(Features: DPI_STAGES),
         lighting: Lighting {
             proto: LightProto::Extended,
-            zones: &[Zone {
-                led: Led::Matrix,
-                effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                brightness: true,
-                name: None,
-            }],
+            zones: &[Zone::new(
+                Led::Matrix,
+                set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
+                true,
+            )],
             rgb: true,
         },
     },
@@ -2605,12 +2191,11 @@ pub(crate) static MODELS: &[Model] = &[
         features: set!(Features: DPI_STAGES),
         lighting: Lighting {
             proto: LightProto::Extended,
-            zones: &[Zone {
-                led: Led::Matrix,
-                effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                brightness: true,
-                name: None,
-            }],
+            zones: &[Zone::new(
+                Led::Matrix,
+                set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
+                true,
+            )],
             rgb: true,
         },
     },
@@ -2626,12 +2211,7 @@ pub(crate) static MODELS: &[Model] = &[
         features: set!(Features: DPI_STAGES),
         lighting: Lighting {
             proto: LightProto::BasiliskMobile,
-            zones: &[Zone {
-                led: Led::Matrix,
-                effects: set!(Effects: STATIC | OFF),
-                brightness: true,
-                name: None,
-            }],
+            zones: &[Zone::new(Led::Matrix, set!(Effects: STATIC | OFF), true)],
             rgb: true,
         },
     },
@@ -2647,12 +2227,7 @@ pub(crate) static MODELS: &[Model] = &[
         features: set!(Features: DPI_STAGES),
         lighting: Lighting {
             proto: LightProto::BasiliskMobile,
-            zones: &[Zone {
-                led: Led::Matrix,
-                effects: set!(Effects: STATIC | OFF),
-                brightness: true,
-                name: None,
-            }],
+            zones: &[Zone::new(Led::Matrix, set!(Effects: STATIC | OFF), true)],
             rgb: true,
         },
     },
@@ -2669,18 +2244,8 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Extended,
             zones: &[
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Matrix,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(Led::Scroll, set!(Effects: STATIC | SPECTRUM | WAVE | OFF), true),
+                Zone::new(Led::Matrix, set!(Effects: STATIC | SPECTRUM | WAVE | OFF), true),
             ],
             rgb: true,
         },
@@ -2698,18 +2263,8 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Extended,
             zones: &[
-                Zone {
-                    led: Led::Scroll,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Matrix,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(Led::Scroll, set!(Effects: STATIC | SPECTRUM | WAVE | OFF), true),
+                Zone::new(Led::Matrix, set!(Effects: STATIC | SPECTRUM | WAVE | OFF), true),
             ],
             rgb: true,
         },
@@ -2727,18 +2282,8 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Extended,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Matrix,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(Led::Logo, set!(Effects: STATIC | SPECTRUM | WAVE | OFF), true),
+                Zone::new(Led::Matrix, set!(Effects: STATIC | SPECTRUM | WAVE | OFF), true),
             ],
             rgb: true,
         },
@@ -2756,18 +2301,8 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Extended,
             zones: &[
-                Zone {
-                    led: Led::Logo,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
-                Zone {
-                    led: Led::Matrix,
-                    effects: set!(Effects: STATIC | SPECTRUM | WAVE | OFF),
-                    brightness: true,
-                    name: None,
-                },
+                Zone::new(Led::Logo, set!(Effects: STATIC | SPECTRUM | WAVE | OFF), true),
+                Zone::new(Led::Matrix, set!(Effects: STATIC | SPECTRUM | WAVE | OFF), true),
             ],
             rgb: true,
         },

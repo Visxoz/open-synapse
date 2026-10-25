@@ -26,10 +26,10 @@ export struct ZoneLook {
     b: color,
 }
 
-/// A part the model's picture shows lit, as white light to colour, with the
-/// line art it hides, both cropped to the box at `left`, `top`, `width` and
-/// `height`; its centre and right-hand edge too, all as fractions of the
-/// drawing. An empty image where none is lit.
+/// A part the picture shows lit: white light to colour and the cover that
+/// hides the line art under it, cropped to `left`, `top`, `width` and
+/// `height`. Positions are fractions of the drawing; the image is empty
+/// where nothing is lit.
 export struct ArtLight {
     image: image,
     cover: image,

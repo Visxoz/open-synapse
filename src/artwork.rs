@@ -22,7 +22,7 @@ pub struct Art {
 }
 
 /// A part lit in the render, as white light on transparency for the UI to
-/// colour: the render's own light, stroke for stroke, halo and all.
+/// colour.
 pub struct Light {
     pub mask: SharedPixelBuffer<Rgba8Pixel>,
     /// A little more than the part, to hide the line art under it while lit.
@@ -41,7 +41,6 @@ pub struct Lights {
     pub logo: Option<Light>,
     pub wheel: Option<Light>,
     pub sides: Option<Light>,
-    /// Light around the rim, as underglow.
     pub under: Option<Light>,
     /// Where the mouse's body starts and ends, as fractions of the drawing's
     /// height, leaving out its cable.
@@ -472,8 +471,8 @@ fn draw(w: usize, h: usize, rgba: &[u8]) -> Option<(Plane, Plane, Plane)> {
         }
     });
     // Razer shows its mice with their lights on: strong colour, unlike the
-    // greys and blacks of the shell. Around each such patch, the lightness
-    // shapes the part, as pale strokes stand out from their coloured halo.
+    // greys and blacks of the shell. Lightness then shapes each patch, as a
+    // logo's pale strokes stand out from their coloured halo.
     let (colourful, lightness): (Vec<bool>, Vec<f32>) = px
         .as_chunks::<4>()
         .0
@@ -493,20 +492,19 @@ fn draw(w: usize, h: usize, rgba: &[u8]) -> Option<(Plane, Plane, Plane)> {
         .unzip();
     let shell = body.v.iter().filter(|&&v| v > 0.5).count();
     let lit_share = colourful.iter().filter(|&&c| c).count() as f32 / shell.max(1) as f32;
-    let near = if lit_share > MAX_LIT_SHARE {
-        vec![false; w * h]
-    } else {
-        dilate(w, h, &colourful, (h / 80).max(2))
-    };
     let lit = Plane {
         w,
         h,
-        // Kept above zero, so the patch stays whole in the cache.
-        v: lightness
-            .into_iter()
-            .zip(near)
-            .map(|(l, near)| if near { l.max(1. / 255.) } else { 0. })
-            .collect(),
+        v: if lit_share > MAX_LIT_SHARE {
+            vec![0.; w * h]
+        } else {
+            // Kept above zero, so the patch stays whole in the cache.
+            lightness
+                .into_iter()
+                .zip(dilate(w, h, &colourful, (h / 80).max(2)))
+                .map(|(l, near)| if near { l.max(1. / 255.) } else { 0. })
+                .collect()
+        },
     };
     Some((outline, details, lit))
 }
@@ -523,9 +521,22 @@ enum Part {
     Under,
 }
 
+/// One patch's light, added up pixel by pixel.
+#[derive(Clone, Copy)]
+struct Sum {
+    light: f32,
+    /// Light weighted by x and by y, for its centre.
+    x: f32,
+    y: f32,
+    rim: f32,
+    /// Its leftmost and rightmost where it shines strongest.
+    strong: Option<(usize, usize)>,
+    /// Where it shines at all: left, top, right and bottom, exclusive.
+    bounds: [usize; 4],
+}
+
 /// Where a lit patch sits and how it is shaped, measured on the body.
 struct Patch {
-    /// Its light, summed.
     area: f32,
     /// Across the body at its height, 0 to 1 from left to right.
     across: f32,
@@ -601,52 +612,63 @@ fn lights(lit: &Plane, outline: &[bool]) -> Lights {
         span[y].is_none_or(|(l, r)| x < l + margin || x + margin > r) || y < top + margin || y + margin > bottom
     };
 
-    let (labels, n) = label(w, h, &lit.v.iter().map(|&v| v > 0.).collect::<Vec<_>>());
+    let (labels, n) = label(w, h, |i| lit.v[i] > 0.);
     let mut peak = vec![0f32; n];
-    for (i, &l) in labels.iter().enumerate().filter(|(_, l)| **l > 0) {
+    for (&l, &v) in labels.iter().zip(&lit.v).filter(|(l, _)| **l > 0) {
         let p = &mut peak[l as usize - 1];
-        *p = p.max(lit.v[i]);
+        *p = p.max(v);
     }
     // How brightly each pixel shows, against the brightest of its patch and
     // above the shell around it; squared, so the strokes stand clear.
-    let core = lit.map(|x, y| {
-        let i = y as usize * w + x as usize;
-        match labels[i] {
+    let core: Vec<f32> = labels
+        .iter()
+        .zip(&lit.v)
+        .map(|(&l, &v)| match l {
             0 => 0.,
-            l => ((lit.v[i] / peak[l as usize - 1] - 0.25) / 0.75).clamp(0., 1.).powi(2),
-        }
-    });
-    // Light, its centre, light along the rim, and leftmost and rightmost.
-    let mut sums = vec![(0f32, 0f32, 0f32, 0f32, w, 0usize); n];
+            l => ((v / peak[l as usize - 1] - 0.25) / 0.75).clamp(0., 1.).powi(2),
+        })
+        .collect();
+    let empty = Sum {
+        light: 0.,
+        x: 0.,
+        y: 0.,
+        rim: 0.,
+        strong: None,
+        bounds: [w, h, 0, 0],
+    };
+    let mut sums = vec![empty; n];
     for (i, &l) in labels.iter().enumerate().filter(|(_, l)| **l > 0) {
-        let (x, y, k) = (i % w, i / w, core.v[i]);
+        let (x, y, k) = (i % w, i / w, core[i]);
         let s = &mut sums[l as usize - 1];
-        s.0 += k;
-        s.1 += k * x as f32;
-        s.2 += k * y as f32;
+        s.light += k;
+        s.x += k * x as f32;
+        s.y += k * y as f32;
         if on_rim(x, y) {
-            s.3 += k;
+            s.rim += k;
+        }
+        if k > 0. {
+            let b = &mut s.bounds;
+            *b = [b[0].min(x), b[1].min(y), b[2].max(x + 1), b[3].max(y + 1)];
         }
         if k > 0.5 {
-            s.4 = s.4.min(x);
-            s.5 = s.5.max(x);
+            s.strong = Some(s.strong.map_or((x, x), |(l, r)| (l.min(x), r.max(x))));
         }
     }
     let min_area = (h * h / 80_000).max(3) as f32;
     let patches: Vec<Option<Patch>> = sums
         .iter()
-        .map(|&(area, sx, sy, rim, left, right)| {
-            if area < min_area {
+        .map(|s| {
+            if s.light < min_area {
                 return None;
             }
-            let (cx, cy) = (sx / area, sy / area);
+            let (cx, cy) = (s.x / s.light, s.y / s.light);
             let (l, r) = span[cy as usize]?;
             Some(Patch {
-                area,
+                area: s.light,
                 across: (cx - l as f32) / (r - l) as f32,
                 down: (cy - top as f32) / (bottom - top) as f32,
-                rim: rim / area,
-                width: right.saturating_sub(left) as f32 / widest.max(1) as f32,
+                rim: s.rim / s.light,
+                width: s.strong.map_or(0, |(l, r)| r - l) as f32 / widest.max(1) as f32,
             })
         })
         .collect();
@@ -663,28 +685,25 @@ fn lights(lit: &Plane, outline: &[bool]) -> Lights {
     // How far the cover reaches past the light, before its blur.
     let spread = (h / 320).max(1);
     let light = |which: Part| {
-        let (area, sx, sy) = sums
-            .iter()
-            .zip(&parts)
-            .filter(|(_, p)| **p == Some(which))
-            .fold((0., 0., 0.), |a, (s, _)| (a.0 + s.0, a.1 + s.1, a.2 + s.2));
+        let of = || {
+            sums.iter()
+                .zip(&parts)
+                .filter(move |(_, p)| **p == Some(which))
+                .map(|(s, _)| s)
+        };
+        let (area, sx, sy) = of().fold((0., 0., 0.), |a, s| (a.0 + s.light, a.1 + s.x, a.2 + s.y));
         if area == 0. {
             return None;
         }
+        let right = of().filter_map(|s| s.strong).map(|(_, r)| r).max()?;
+        let b = of().fold([w, h, 0, 0], |b, s| {
+            let c = s.bounds;
+            [b[0].min(c[0]), b[1].min(c[1]), b[2].max(c[2]), b[3].max(c[3])]
+        });
         let mine = |i: usize| match labels[i] {
-            l if l > 0 && parts[l as usize - 1] == Some(which) => core.v[i],
+            l if l > 0 && parts[l as usize - 1] == Some(which) => core[i],
             _ => 0.,
         };
-        // Its box, and its right-hand edge where it shines strongest.
-        let (mut b, mut right) = ([w, h, 0, 0], None);
-        for (i, k) in (0..w * h).map(|i| (i, mine(i))).filter(|&(_, k)| k > 0.) {
-            let (x, y) = (i % w, i / w);
-            b = [b[0].min(x), b[1].min(y), b[2].max(x + 1), b[3].max(y + 1)];
-            if k > 0.5 {
-                right = right.max(Some(x));
-            }
-        }
-        let right = right?;
         // Only the box is kept, grown to hold the cover and its blur.
         let pad = spread + 1;
         let [x0, y0] = [b[0].saturating_sub(pad), b[1].saturating_sub(pad)];
@@ -722,46 +741,53 @@ fn lights(lit: &Plane, outline: &[bool]) -> Lights {
     }
 }
 
-/// `on` grown by `r` pixels each way, a row and then a column at a time.
+/// `on` grown by `r` pixels each way, in passes whose cost does not grow
+/// with `r`; columns go a row at a time, to read memory in order.
 fn dilate(w: usize, h: usize, on: &[bool], r: usize) -> Vec<bool> {
+    // Counts the cells since the last one set; true while within `r` of it.
+    let near = |gap: &mut usize, set: bool| {
+        *gap = if set { 0 } else { gap.saturating_add(1) };
+        *gap <= r
+    };
     let mut rows = vec![false; w * h];
-    for y in 0..h {
-        grow(on, &mut rows, y * w, 1, w, r);
+    for (src, dst) in on.chunks_exact(w).zip(rows.chunks_exact_mut(w)) {
+        let mut gap = usize::MAX;
+        for (&s, d) in src.iter().zip(dst.iter_mut()) {
+            *d = near(&mut gap, s);
+        }
+        gap = usize::MAX;
+        for (&s, d) in src.iter().zip(dst.iter_mut()).rev() {
+            *d |= near(&mut gap, s);
+        }
     }
     let mut out = vec![false; w * h];
-    for x in 0..w {
-        grow(&rows, &mut out, x, w, h, r);
+    let mut gaps = vec![usize::MAX; w];
+    for (src, dst) in rows.chunks_exact(w).zip(out.chunks_exact_mut(w)) {
+        for ((&s, d), gap) in src.iter().zip(dst).zip(&mut gaps) {
+            *d = near(gap, s);
+        }
+    }
+    gaps.fill(usize::MAX);
+    for (src, dst) in rows.chunks_exact(w).zip(out.chunks_exact_mut(w)).rev() {
+        for ((&s, d), gap) in src.iter().zip(dst).zip(&mut gaps) {
+            *d |= near(gap, s);
+        }
     }
     out
 }
 
-/// Marks the `n` cells from `start`, `step` apart, that lie within `r` of
-/// one set in `src`: a pass each way, so the cost does not grow with `r`.
-fn grow(src: &[bool], dst: &mut [bool], start: usize, step: usize, n: usize, r: usize) {
-    let mut gap = usize::MAX;
-    for i in (0..n).map(|k| start + k * step) {
-        gap = if src[i] { 0 } else { gap.saturating_add(1) };
-        dst[i] = gap <= r;
-    }
-    gap = usize::MAX;
-    for i in (0..n).rev().map(|k| start + k * step) {
-        gap = if src[i] { 0 } else { gap.saturating_add(1) };
-        dst[i] |= gap <= r;
-    }
-}
-
 /// Numbers each connected patch of `on` from 1, 0 elsewhere; returns the
 /// numbers and how many patches there are.
-fn label(w: usize, h: usize, on: &[bool]) -> (Vec<u32>, usize) {
+fn label(w: usize, h: usize, on: impl Fn(usize) -> bool) -> (Vec<u32>, usize) {
     let mut labels = vec![0u32; w * h];
     let mut n = 0;
     let mut stack = Vec::new();
     for start in 0..w * h {
-        if on[start] && labels[start] == 0 {
+        if labels[start] == 0 && on(start) {
             n += 1;
             labels[start] = n as u32;
             flood(w, h, start, &mut stack, |j| {
-                let new = on[j] && labels[j] == 0;
+                let new = labels[j] == 0 && on(j);
                 if new {
                     labels[j] = n as u32;
                 }
