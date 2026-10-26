@@ -1,0 +1,4 @@
+# Lets whoever is signed in at the seat open Razer mice's hidraw nodes, as
+# Open Synapse needs. Matches the HID device's name, 0003:1532:XXXX.NNNN, so
+# both USB and Bluetooth mice are covered.
+SUBSYSTEM=="hidraw", KERNELS=="*:1532:*", TAG+="uaccess"

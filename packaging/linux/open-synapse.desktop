@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Open Synapse
+Comment=Settings for Razer mice
+Exec=open-synapse
+Icon=open-synapse
+Terminal=false
+Categories=Settings;HardwareSettings;
+Keywords=Razer;mouse;DPI;

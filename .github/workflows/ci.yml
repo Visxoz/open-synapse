@@ -18,10 +18,19 @@ env:
 
 jobs:
   check:
-    name: Format, lint and test
-    runs-on: windows-latest
+    name: Format, lint and test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-22.04, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
+
+      # Slint and Skia link fontconfig and freetype; winit loads the rest.
+      - name: Install Linux libraries
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev libfreetype-dev libxkbcommon-dev
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -39,3 +48,27 @@ jobs:
 
       - name: Test
         run: cargo test --workspace
+
+      # Starts the app with no mouse attached and fails if it exits within ten
+      # seconds, as a panic or a missing system library would make it. Linux
+      # gets a virtual display and a session bus for the tray.
+      - name: Start the app
+        shell: bash
+        env:
+          OPEN_SYNAPSE_LOG: debug
+        run: |
+          cargo build
+          run=()
+          if [ "$RUNNER_OS" = Linux ]; then
+            sudo apt-get install -y xvfb libxkbcommon-x11-0 dbus
+            run=(dbus-run-session -- xvfb-run -a)
+          fi
+          "${run[@]}" target/debug/open-synapse &
+          pid=$!
+          sleep 10
+          if ! kill -0 "$pid" 2> /dev/null; then
+            wait "$pid" && status=0 || status=$?
+            echo "The app exited during start-up with status $status" >&2
+            exit 1
+          fi
+          kill "$pid"
