@@ -16,14 +16,7 @@ use windows_sys::Win32::{
     },
 };
 
-fn lower_file_name(path: &Path) -> Option<String> {
-    Some(path.file_name()?.to_string_lossy().to_lowercase())
-}
-
-/// This program's own lower-case file name.
-pub fn own_exe() -> Option<String> {
-    lower_file_name(&std::env::current_exe().ok()?)
-}
+use crate::platform::{file_name_lower, linkable};
 
 /// The lower-case file name of the program that owns `hwnd`.
 fn exe_of(hwnd: HWND) -> Option<String> {
@@ -49,7 +42,7 @@ fn exe_of(hwnd: HWND) -> Option<String> {
     if ok == 0 {
         return None;
     }
-    lower_file_name(Path::new(&String::from_utf16_lossy(&buf[..len as usize])))
+    file_name_lower(Path::new(&String::from_utf16_lossy(&buf[..len as usize])))
 }
 
 /// Parts of Windows that own visible windows but are not programs anyone links.
@@ -81,11 +74,7 @@ pub fn running() -> Vec<String> {
     let mut list: Vec<String> = Vec::new();
     // SAFETY: `visit` only uses `list` while EnumWindows runs.
     unsafe { EnumWindows(Some(visit), &mut list as *mut Vec<String> as LPARAM) };
-    let own = own_exe();
-    list.retain(|e| Some(e) != own.as_ref() && !SYSTEM.contains(&e.as_str()));
-    list.sort_unstable();
-    list.dedup();
-    list
+    linkable(list, SYSTEM)
 }
 
 type OnForeground = Box<dyn Fn(String)>;

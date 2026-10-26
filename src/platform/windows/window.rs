@@ -1,3 +1,6 @@
+//! The window's title bar, bringing it forward, and the tray panel's place
+//! and fade.
+
 use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 use windows_sys::{
     Win32::{
@@ -17,7 +20,10 @@ use windows_sys::{
     core::w,
 };
 
-pub fn hwnd(window: &slint::Window) -> Option<HWND> {
+/// A click on the tray icon opens the panel by the taskbar's corner.
+pub const TRAY_PANEL: bool = true;
+
+fn hwnd(window: &slint::Window) -> Option<HWND> {
     let handle = window.window_handle();
     match handle.window_handle().ok()?.as_raw() {
         RawWindowHandle::Win32(h) => Some(h.hwnd.get() as HWND),
@@ -27,7 +33,8 @@ pub fn hwnd(window: &slint::Window) -> Option<HWND> {
 
 /// A dark title bar in the window's own background colour, so it reads as
 /// part of the app.
-pub fn style_title_bar(hwnd: HWND, background: slint::Color) {
+pub fn style_title_bar(window: &slint::Window, background: slint::Color) {
+    let Some(hwnd) = hwnd(window) else { return };
     let dark: i32 = 1;
     let colour: u32 =
         u32::from(background.red()) | u32::from(background.green()) << 8 | u32::from(background.blue()) << 16;
@@ -45,7 +52,8 @@ pub fn style_title_bar(hwnd: HWND, background: slint::Color) {
 
 /// Brings the window in front of others, which Windows allows once the
 /// launch that asked for it has passed on its right to.
-pub fn bring_to_front(hwnd: HWND) {
+pub fn bring_to_front(window: &slint::Window) {
+    let Some(hwnd) = hwnd(window) else { return };
     // SAFETY: `hwnd` is a live window.
     unsafe { SetForegroundWindow(hwnd) };
 }
@@ -53,7 +61,8 @@ pub fn bring_to_front(hwnd: HWND) {
 /// Makes the window `alpha` opaque, 0 to 1, as a layered window. Only for
 /// windows drawn through GDI, as the software renderer does: Direct3D's
 /// flip-model swap chains cannot present to a layered window.
-pub fn set_alpha(hwnd: HWND, alpha: f32) {
+pub fn set_alpha(window: &slint::Window, alpha: f32) {
+    let Some(hwnd) = hwnd(window) else { return };
     let layered = WS_EX_LAYERED as isize;
     // SAFETY: `hwnd` is a live window.
     unsafe {

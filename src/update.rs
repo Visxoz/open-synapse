@@ -1,12 +1,19 @@
 //! Updates from GitHub releases: finds a newer version, downloads the
-//! installer or the portable exe, checks it against the release's SHA-256
-//! sums, and hands over to it once the app has closed.
+//! Windows installer or the build for this platform, checks it against the
+//! release's SHA-256 sums, and hands over to it once the app has closed.
 
-use std::{fs, io, path::Path, process::Command, sync::Mutex, time::Duration};
+use std::{
+    fmt::Write as _,
+    fs, io,
+    path::{Path, PathBuf},
+    process::Command,
+    sync::Mutex,
+    time::Duration,
+};
 
 use serde::Deserialize;
 
-use crate::win::{hash, http};
+use crate::{http, platform::hash};
 
 const LATEST: &str = "https://api.github.com/repos/Visxoz/open-synapse/releases/latest";
 /// GitHub's API and the hosts its release downloads redirect to.
@@ -56,10 +63,23 @@ fn pending() -> std::sync::MutexGuard<'static, Option<Command>> {
     PENDING.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
 }
 
-/// An installed copy has Inno Setup's uninstaller beside it.
+/// An installed copy has Inno Setup's uninstaller beside it; on Linux and
+/// macOS every copy is the bare program.
 fn kind() -> Kind {
-    let installed = std::env::current_exe().is_ok_and(|exe| exe.with_file_name("unins000.exe").exists());
+    let installed =
+        cfg!(windows) && std::env::current_exe().is_ok_and(|exe| exe.with_file_name("unins000.exe").exists());
     if installed { Kind::Installed } else { Kind::Portable }
+}
+
+/// How the name of the build for a copy ends in a release, as in
+/// `open-synapse_0.2.0_linux-x86_64`. Windows' names came first, and copies
+/// already out there look for them.
+fn suffix(kind: Kind) -> String {
+    match kind {
+        Kind::Installed => "_x64-setup.exe".into(),
+        Kind::Portable if cfg!(windows) => "_x64-portable.exe".into(),
+        Kind::Portable => format!("_{}-{}", std::env::consts::OS, std::env::consts::ARCH),
+    }
 }
 
 /// `x.y.z`, with or without a leading `v`; anything else, such as a
@@ -90,14 +110,11 @@ fn newer(release: Release, current: &str, kind: Kind) -> Result<Option<Update>, 
     if latest <= current {
         return Ok(None);
     }
-    let suffix = match kind {
-        Kind::Installed => "_x64-setup.exe",
-        Kind::Portable => "_x64-portable.exe",
-    };
+    let suffix = suffix(kind);
     let assets = &release.assets;
     let asset = assets
         .iter()
-        .find(|a| a.name.ends_with(suffix))
+        .find(|a| a.name.ends_with(&suffix))
         .ok_or("the release has no build for this copy")?;
     let sums = assets
         .iter()
@@ -118,6 +135,14 @@ fn expected_hash(sums: &str, name: &str) -> Option<String> {
     })
 }
 
+/// A digest in lower-case hex, as the sums are written.
+fn hex(digest: &[u8]) -> String {
+    digest.iter().fold(String::with_capacity(digest.len() * 2), |mut s, b| {
+        let _ = write!(s, "{b:02x}");
+        s
+    })
+}
+
 /// Downloads the update and checks it against the release's checksum and
 /// size before anything is written. `progress` hears the fraction done.
 pub fn download(update: &Update, mut progress: impl FnMut(f32)) -> Result<Vec<u8>, String> {
@@ -130,7 +155,7 @@ pub fn download(update: &Update, mut progress: impl FnMut(f32)) -> Result<Vec<u8
         progress((done as f32 / total).min(1.))
     })
     .map_err(fail)?;
-    let actual = hash::sha256(&build).map_err(fail)?;
+    let actual = hex(&hash::sha256(&build).map_err(fail)?);
     if actual != expected || build.len() != update.asset.size {
         return Err("the download did not match its checksum".into());
     }
@@ -138,7 +163,7 @@ pub fn download(update: &Update, mut progress: impl FnMut(f32)) -> Result<Vec<u8
 }
 
 /// Readies a downloaded update to take over once the app closes: the
-/// installer is saved to the temp folder, and a portable exe put in place.
+/// installer is saved to the temp folder, and a portable build put in place.
 pub fn stage(update: &Update, build: &[u8]) -> Result<(), String> {
     let fail = |e: io::Error| format!("could not install the update: {e}");
     let command = match update.kind {
@@ -159,10 +184,18 @@ pub fn stage(update: &Update, build: &[u8]) -> Result<(), String> {
     Ok(())
 }
 
+/// `exe` with `suffix` after its name, as in `open-synapse.exe.old`.
+fn beside(exe: &Path, suffix: &str) -> PathBuf {
+    let mut name = exe.as_os_str().to_owned();
+    name.push(suffix);
+    name.into()
+}
+
 /// Puts `build` where `exe` is. A running exe can be renamed, though not
 /// overwritten, so it moves aside until the next start removes it.
+#[cfg(windows)]
 fn replace(exe: &Path, build: &[u8]) -> io::Result<()> {
-    let (new, old) = (exe.with_extension("exe.new"), exe.with_extension("exe.old"));
+    let (new, old) = (beside(exe, ".new"), beside(exe, ".old"));
     fs::write(&new, build)?;
     let _ = fs::remove_file(&old);
     if let Err(e) = fs::rename(exe, &old) {
@@ -172,6 +205,48 @@ fn replace(exe: &Path, build: &[u8]) -> io::Result<()> {
     fs::rename(&new, exe).inspect_err(|_| {
         let _ = fs::rename(&old, exe);
     })
+}
+
+/// Puts `build` where `exe` is, with its permissions. A program renamed
+/// over keeps running from the old file, which goes once it exits.
+#[cfg(unix)]
+fn replace(exe: &Path, build: &[u8]) -> io::Result<()> {
+    use std::{
+        io::Write,
+        os::unix::fs::{OpenOptionsExt, PermissionsExt},
+    };
+    let new = beside(exe, ".new");
+    let mode = fs::metadata(exe)?.permissions().mode();
+    let _ = fs::remove_file(&new);
+    let replaced = fs::File::options()
+        .write(true)
+        .create_new(true)
+        .mode(mode)
+        .open(&new)
+        // On disk before the rename, so a crash cannot leave half a program.
+        .and_then(|mut file| file.write_all(build).and_then(|()| file.sync_all()))
+        .and_then(|()| fs::rename(&new, exe));
+    if replaced.is_err() {
+        let _ = fs::remove_file(&new);
+        return replaced;
+    }
+    // An app's signature covers its program, so the app is signed again,
+    // ad hoc, as releases are.
+    #[cfg(target_os = "macos")]
+    if let Some(app) = exe
+        .ancestors()
+        .nth(3)
+        .filter(|a| a.extension().is_some_and(|e| e == "app"))
+    {
+        let signed = Command::new("/usr/bin/codesign")
+            .args(["--force", "--sign", "-"])
+            .arg(app)
+            .status();
+        if !signed.is_ok_and(|s| s.success()) {
+            log::warn!("could not sign {} again", app.display());
+        }
+    }
+    Ok(())
 }
 
 /// Starts a staged update. Called as the app exits, after it has let go of
@@ -184,10 +259,10 @@ pub fn launch_pending() {
     }
 }
 
-/// Removes the exe a portable update replaced, once the copy that ran from
-/// it has exited and let go of it, which may take a moment.
+/// Removes the exe a portable update on Windows replaced, once the copy
+/// that ran from it has exited and let go of it, which may take a moment.
 pub fn clean_up() {
-    let Ok(old) = std::env::current_exe().map(|exe| exe.with_extension("exe.old")) else {
+    let Ok(old) = std::env::current_exe().map(|exe| beside(&exe, ".old")) else {
         return;
     };
     if !old.exists() {
@@ -208,7 +283,7 @@ pub fn clean_up() {
 mod tests {
     use super::*;
 
-    fn release(tag: &str, names: &[&str]) -> Release {
+    fn release(tag: &str, names: &[String]) -> Release {
         Release {
             tag_name: tag.into(),
             draft: false,
@@ -216,7 +291,7 @@ mod tests {
             assets: names
                 .iter()
                 .map(|name| Asset {
-                    name: (*name).into(),
+                    name: name.clone(),
                     browser_download_url: format!("https://github.com/x/{name}"),
                     size: 1,
                 })
@@ -224,11 +299,14 @@ mod tests {
         }
     }
 
-    const ASSETS: &[&str] = &[
-        "open-synapse_0.2.0_x64-portable.exe",
-        "open-synapse_0.2.0_x64-setup.exe",
-        "SHA256SUMS",
-    ];
+    /// This platform's portable build, Windows' installer and the sums.
+    fn assets() -> Vec<String> {
+        vec![
+            format!("open-synapse_0.2.0{}", suffix(Kind::Portable)),
+            "open-synapse_0.2.0_x64-setup.exe".into(),
+            SUMS.into(),
+        ]
+    }
 
     #[test]
     fn reads_versions() {
@@ -240,27 +318,43 @@ mod tests {
     }
 
     #[test]
+    fn names_builds_as_releases_do() {
+        let portable = suffix(Kind::Portable);
+        if cfg!(windows) {
+            assert_eq!(portable, "_x64-portable.exe");
+        } else if cfg!(all(target_os = "linux", target_arch = "x86_64")) {
+            assert_eq!(portable, "_linux-x86_64");
+        } else if cfg!(all(target_os = "macos", target_arch = "aarch64")) {
+            assert_eq!(portable, "_macos-aarch64");
+        }
+    }
+
+    #[test]
     fn offers_only_newer_releases() {
-        let none = |tag| newer(release(tag, ASSETS), "0.1.2", Kind::Portable).unwrap().is_none();
+        let none = |tag| {
+            newer(release(tag, &assets()), "0.1.2", Kind::Portable)
+                .unwrap()
+                .is_none()
+        };
         assert!(none("v0.1.2") && none("v0.1.1"));
-        let update = newer(release("v0.2.0", ASSETS), "0.1.2", Kind::Portable)
+        let update = newer(release("v0.2.0", &assets()), "0.1.2", Kind::Portable)
             .unwrap()
             .unwrap();
         assert_eq!(update.version, "0.2.0");
-        assert_eq!(update.asset.name, "open-synapse_0.2.0_x64-portable.exe");
-        let mut early = release("v0.2.0", ASSETS);
+        assert_eq!(update.asset.name, assets()[0]);
+        let mut early = release("v0.2.0", &assets());
         early.prerelease = true;
         assert!(newer(early, "0.1.2", Kind::Portable).unwrap().is_none());
     }
 
     #[test]
     fn picks_the_build_for_this_copy() {
-        let update = newer(release("v0.2.0", ASSETS), "0.1.2", Kind::Installed)
+        let update = newer(release("v0.2.0", &assets()), "0.1.2", Kind::Installed)
             .unwrap()
             .unwrap();
         assert_eq!(update.asset.name, "open-synapse_0.2.0_x64-setup.exe");
         assert!(
-            newer(release("v0.2.0", &ASSETS[..2]), "0.1.2", Kind::Installed).is_err(),
+            newer(release("v0.2.0", &assets()[..2]), "0.1.2", Kind::Installed).is_err(),
             "no checksums, no update"
         );
     }
@@ -280,15 +374,30 @@ mod tests {
     }
 
     #[test]
-    fn replaces_the_exe_and_keeps_the_old_one_aside() {
+    fn hashes_the_standard_vectors() {
+        let sha256 = |data: &[u8]| hex(&hash::sha256(data).unwrap());
+        assert_eq!(
+            sha256(b"abc"),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
+        assert_eq!(
+            sha256(b""),
+            "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        );
+    }
+
+    #[test]
+    fn replaces_the_exe() {
         let dir = std::env::temp_dir().join(format!("open-synapse-update-{}", std::process::id()));
         fs::create_dir_all(&dir).unwrap();
         let exe = dir.join("open-synapse.exe");
         fs::write(&exe, b"old").unwrap();
         replace(&exe, b"new").unwrap();
         assert_eq!(fs::read(&exe).unwrap(), b"new");
-        assert_eq!(fs::read(exe.with_extension("exe.old")).unwrap(), b"old");
-        assert!(!exe.with_extension("exe.new").exists());
+        assert!(!beside(&exe, ".new").exists());
+        // Windows cannot overwrite a running exe, so keeps it aside.
+        let old = fs::read(beside(&exe, ".old")).ok();
+        assert_eq!(old.as_deref(), cfg!(windows).then_some(&b"old"[..]));
         fs::remove_dir_all(&dir).unwrap();
     }
 }

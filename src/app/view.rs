@@ -8,7 +8,7 @@ use slint::{Color, ComponentHandle, Model, ModelRc, SharedString, VecModel};
 use super::{App, State, lighting::colour, pictures::Picture};
 use crate::{
     Backend, Choice, DeviceItem, ProfileItem, StageItem, ZoneLook,
-    win::{autostart, pointer},
+    platform::{autostart, pointer},
     worker::Info,
 };
 
@@ -366,11 +366,12 @@ impl App {
         self.panel.set_profile(st.profiles.active as i32);
     }
 
-    /// Windows' pointer settings, which other programs may change too.
+    /// Windows' pointer settings, which other programs may change too; other
+    /// systems keep theirs to themselves, and the page leaves them out.
     pub(super) fn refresh_pointer(&self) {
+        let Some(p) = pointer::read() else { return };
         let ui = self.ui();
         let b = ui.global::<Backend>();
-        let p = pointer::read();
         b.set_pointer_speed(p.speed as i32);
         b.set_pointer_precision(p.precision);
         b.set_scroll_lines(p.scroll_lines as i32);
@@ -381,7 +382,7 @@ impl App {
         let ui = self.ui();
         let b = ui.global::<Backend>();
         let st = self.state.borrow();
-        b.set_start_with_windows(autostart::enabled());
+        b.set_start_at_login(autostart::enabled());
         b.set_close_to_tray(st.settings.close_to_tray);
         b.set_auto_switch(st.settings.auto_switch);
         b.set_gpu(st.settings.gpu);

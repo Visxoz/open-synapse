@@ -9,7 +9,7 @@ use windows_sys::Win32::Devices::DeviceAndDriverInstallation::{
     CM_Unregister_Notification, CR_SUCCESS, HCMNOTIFICATION,
 };
 
-use crate::hid::{hid_guid, usb_ids};
+use super::hid::{hid_guid, usb_ids};
 
 type Callback = Box<dyn Fn() + Send + Sync>;
 

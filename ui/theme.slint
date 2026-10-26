@@ -19,10 +19,11 @@ export global Theme {
     out property <length> pad: 36px;
     out property <length> label-width: 220px;
 
-    /// DIN-style, shipped with Windows: numbers, labels and headings.
-    out property <string> display: "Bahnschrift";
-    out property <string> body: "Segoe UI Variable Text";
-    out property <string> mono: "Cascadia Mono";
+    /// Windows' typefaces, which Rust replaces where they are missing. The
+    /// display face, DIN-style, sets numbers, labels and headings.
+    in-out property <string> display: "Bahnschrift";
+    in-out property <string> body: "Segoe UI Variable Text";
+    in-out property <string> mono: "Cascadia Mono";
     out property <duration> fast: 90ms;
 }
 

@@ -8,15 +8,10 @@ use windows_sys::Win32::UI::WindowsAndMessaging::{
     SPI_SETWHEELSCROLLLINES, SPIF_SENDCHANGE, SPIF_UPDATEINIFILE, SystemParametersInfoW,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Pointer {
-    /// 1 to 20; Windows starts at 10.
-    pub speed: u32,
-    /// "Enhance pointer precision", Windows' acceleration.
-    pub precision: bool,
-    pub scroll_lines: u32,
-    pub double_click_ms: u32,
-}
+use crate::platform::Pointer;
+
+/// The settings are Windows' own, there on every copy.
+pub const AVAILABLE: bool = true;
 
 /// Saves the change and tells running programs about it.
 const PERSIST: u32 = SPIF_UPDATEINIFILE | SPIF_SENDCHANGE;
@@ -40,15 +35,15 @@ fn set(action: u32, param: u32, data: *mut c_void) {
     unsafe { SystemParametersInfoW(action, param, data, PERSIST) };
 }
 
-pub fn read() -> Pointer {
+pub fn read() -> Option<Pointer> {
     let acceleration: [i32; 3] = get(SPI_GETMOUSE);
-    Pointer {
+    Some(Pointer {
         speed: get::<u32>(SPI_GETMOUSESPEED),
         precision: acceleration[2] != 0,
         scroll_lines: get::<u32>(SPI_GETWHEELSCROLLLINES),
         // SAFETY: no arguments.
         double_click_ms: unsafe { GetDoubleClickTime() },
-    }
+    })
 }
 
 pub fn set_speed(speed: u32) {

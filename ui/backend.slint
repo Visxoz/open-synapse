@@ -86,7 +86,8 @@ export global Backend {
     in property <StageItem> dpi;
     in property <[Choice]> poll-rates;
     in property <int> poll;
-    /// Windows' pointer settings, for every mouse.
+    /// Windows' pointer settings, for every mouse, where the system has them.
+    in property <bool> has-pointer;
     in property <int> pointer-speed: 10;
     in property <bool> pointer-precision;
     in property <int> scroll-lines: 3;
@@ -124,7 +125,7 @@ export global Backend {
     in property <int> profile;
     in property <[string]> running-programs;
 
-    in property <bool> start-with-windows;
+    in property <bool> start-at-login;
     in property <bool> close-to-tray;
     in property <bool> auto-switch;
     in property <bool> gpu;
@@ -170,7 +171,7 @@ export global Backend {
     callback add-program(int, string);
     callback remove-program(int, int);
 
-    callback set-start-with-windows(bool);
+    callback set-start-at-login(bool);
     callback set-close-to-tray(bool);
     callback set-auto-switch(bool);
     callback set-gpu(bool);

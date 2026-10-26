@@ -2,6 +2,7 @@
 //! blocks for milliseconds, and wireless ones for tens of them.
 
 use std::{
+    io,
     sync::mpsc::{self, Receiver, RecvTimeoutError, Sender},
     thread,
     time::{Duration, Instant},
@@ -194,11 +195,26 @@ impl Run {
             log::info!("{} disconnected", open.device.model.name);
             (self.sink)(Event::Disconnected(open.id));
         }
+        // Mice whose control interface the system would not let this app open.
+        let mut denied: Vec<&'static Model> = Vec::new();
         for (iface, path) in candidates.iter().zip(&paths) {
             if self.devices.iter().any(|o| o.device.path == *path) {
                 continue;
             }
-            let Some(device) = Device::open(iface) else { continue };
+            let device = match Device::open(iface) {
+                Ok(Some(device)) => device,
+                Ok(None) => continue,
+                Err(e) => {
+                    log::debug!("cannot open {path}: {e}");
+                    if e.kind() == io::ErrorKind::PermissionDenied
+                        && let Some(model) = Model::find(iface.pid)
+                        && !denied.iter().any(|m| m.pid == model.pid)
+                    {
+                        denied.push(model);
+                    }
+                    continue;
+                }
+            };
             // A mouse with two control collections answers on both; one that
             // is asleep cannot tell them apart, so the first stands for both.
             let duplicate = self.devices.iter().any(|o| {
@@ -228,6 +244,15 @@ impl Run {
             );
             (self.sink)(Event::Connected(open.info()));
             self.devices.push(open);
+        }
+        for model in denied {
+            if !self.devices.iter().any(|o| o.device.model.pid == model.pid) {
+                (self.sink)(Event::Failed(format!(
+                    "Open Synapse is not allowed to open the {}. {}",
+                    model.name,
+                    razer_driver::ACCESS_HINT
+                )));
+            }
         }
     }
 

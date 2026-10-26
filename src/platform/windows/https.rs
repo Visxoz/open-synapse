@@ -77,16 +77,6 @@ fn crack(url: &str) -> io::Result<(String, String, u16)> {
     ))
 }
 
-/// Whether `host` is one of `hosts` or a subdomain of one; any host when
-/// `hosts` is empty.
-fn within(host: &str, hosts: &[&str]) -> bool {
-    hosts.is_empty()
-        || hosts.iter().any(|h| {
-            host.strip_suffix(h)
-                .is_some_and(|sub| sub.is_empty() || sub.ends_with('.'))
-        })
-}
-
 /// The URL a request ended at, after any redirects.
 fn final_url(request: &Handle) -> io::Result<String> {
     let mut len = 0u32;
@@ -103,19 +93,45 @@ fn final_url(request: &Handle) -> io::Result<String> {
     Ok(String::from_utf16_lossy(&url).trim_end_matches('\0').to_owned())
 }
 
-/// The body of `url`, which must be HTTPS, up to `limit` bytes.
-pub fn get(url: &str, limit: usize) -> io::Result<Vec<u8>> {
-    get_from(url, limit, &[], &mut |_| {})
+/// An HTTPS URL's host, in lower case.
+pub fn host(url: &str) -> io::Result<String> {
+    crack(url).map(|(host, ..)| host)
 }
 
-/// The body of `url`, as `get`, but only from `hosts` and their subdomains,
-/// wherever redirects lead. `progress` hears the bytes received so far.
-pub fn get_from(url: &str, limit: usize, hosts: &[&str], progress: &mut dyn FnMut(usize)) -> io::Result<Vec<u8>> {
-    let (host, path, port) = crack(url)?;
-    if !within(&host, hosts) {
-        return Err(io::Error::other(format!("{host} is not an allowed host")));
+/// A response whose headers have arrived, its body still to read.
+pub struct Response {
+    // Declared in the order they close.
+    request: Handle,
+    _connection: Handle,
+    _session: Handle,
+    status: u16,
+    landed: String,
+}
+
+impl Response {
+    pub fn status(&self) -> u16 {
+        self.status
     }
 
+    /// The host the request ended at; WinHTTP follows redirects itself.
+    pub fn host(&self) -> &str {
+        &self.landed
+    }
+}
+
+impl io::Read for Response {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        let mut read = 0u32;
+        let len = u32::try_from(buf.len()).unwrap_or(u32::MAX);
+        // SAFETY: `buf` is valid for writes of `len` bytes.
+        check(unsafe { WinHttpReadData(self.request.0, buf.as_mut_ptr().cast(), len, &mut read) })?;
+        Ok(read as usize)
+    }
+}
+
+/// Sends a GET for `url`, which must be HTTPS, and waits for the headers.
+pub fn open(url: &str) -> io::Result<Response> {
+    let (host, path, port) = crack(url)?;
     let agent = wide(concat!("OpenSynapse/", env!("CARGO_PKG_VERSION")));
     // SAFETY: `agent` is NUL-terminated; null proxy names use the system's.
     let session = Handle::new(unsafe {
@@ -149,16 +165,7 @@ pub fn get_from(url: &str, limit: usize, hosts: &[&str], progress: &mut dyn FnMu
     check(unsafe { WinHttpSendRequest(request.0, ptr::null(), 0, ptr::null(), 0, 0, 0) })?;
     // SAFETY: `request` has been sent.
     check(unsafe { WinHttpReceiveResponse(request.0, ptr::null_mut()) })?;
-
-    // WinHTTP follows redirects itself, so the host is checked where it ended.
-    if !hosts.is_empty() {
-        let (landed, ..) = crack(&final_url(&request)?)?;
-        if !within(&landed, hosts) {
-            return Err(io::Error::other(format!(
-                "redirected to {landed}, which is not allowed"
-            )));
-        }
-    }
+    let (landed, ..) = crack(&final_url(&request)?)?;
 
     let (mut status, mut size) = (0u32, 4u32);
     // SAFETY: `status` holds the four bytes asked for.
@@ -172,25 +179,14 @@ pub fn get_from(url: &str, limit: usize, hosts: &[&str], progress: &mut dyn FnMu
             ptr::null_mut(),
         )
     })?;
-    if status != 200 {
-        return Err(io::Error::other(format!("HTTP {status}")));
-    }
-
-    let mut body = Vec::new();
-    let mut chunk = vec![0u8; 64 * 1024];
-    loop {
-        let mut read = 0u32;
-        // SAFETY: `chunk` is valid for writes of its length.
-        check(unsafe { WinHttpReadData(request.0, chunk.as_mut_ptr().cast(), chunk.len() as u32, &mut read) })?;
-        if read == 0 {
-            return Ok(body);
-        }
-        body.extend_from_slice(&chunk[..read as usize]);
-        if body.len() > limit {
-            return Err(io::Error::other("response too large"));
-        }
-        progress(body.len());
-    }
+    Ok(Response {
+        request,
+        _connection: connection,
+        _session: session,
+        // Codes are three digits, so one that does not fit is no answer.
+        status: u16::try_from(status).unwrap_or(0),
+        landed,
+    })
 }
 
 #[cfg(test)]
@@ -198,18 +194,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn allows_only_the_hosts_given_and_their_subdomains() {
-        let github = &["github.com", "githubusercontent.com"];
-        assert!(within("github.com", github));
-        assert!(within("release-assets.githubusercontent.com", github));
-        assert!(!within("evilgithub.com", github));
-        assert!(!within("github.com.evil.com", github));
-        assert!(within("anything.example", &[]));
-    }
-
-    #[test]
-    fn refuses_plain_http() {
-        assert!(crack("http://github.com/").is_err());
+    fn cracks_a_url() {
         assert_eq!(
             crack("https://GitHub.com/a/b?c=1").unwrap(),
             ("github.com".into(), "/a/b?c=1".into(), 443)

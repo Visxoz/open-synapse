@@ -1,9 +1,12 @@
 //! Switching, editing and linking profiles.
 
-use slint::ComponentHandle;
+use slint::{ComponentHandle, winit_030::WinitWindowAccessor};
 
 use super::{App, view::model};
-use crate::win::programs::{self, ForegroundHook};
+use crate::platform::{
+    self,
+    programs::{self, ForegroundHook},
+};
 
 impl App {
     /// Makes profile `index` active and applies it to every device; a
@@ -100,7 +103,7 @@ impl App {
         let on = self.state.borrow().settings.auto_switch;
         let mut hook = self.foreground.borrow_mut();
         if on && hook.is_none() {
-            let own = programs::own_exe();
+            let own = platform::own_exe();
             *hook = ForegroundHook::new(move |exe| {
                 if Some(&exe) != own.as_ref() {
                     super::with_app(|app| app.foreground_changed(&exe));
@@ -112,12 +115,18 @@ impl App {
     }
 
     fn foreground_changed(&self, exe: &str) {
+        // A window the system cannot name may be this app's own, which, as on
+        // Windows, keeps the profile in place to edit it.
+        if exe.is_empty() && self.ui().window().with_winit_window(|w| w.has_focus()) == Some(true) {
+            return;
+        }
         let st = self.state.borrow();
         let target = st.profiles.for_program(exe).unwrap_or(st.chosen);
         let current = st.profiles.active;
         drop(st);
         if target != current {
-            log::info!("{exe} is in front; switching profile");
+            let program = if exe.is_empty() { "an unnamed window" } else { exe };
+            log::info!("{program} is in front; switching profile");
             self.activate_profile(target, false);
         }
     }

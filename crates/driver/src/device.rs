@@ -6,7 +6,7 @@ use std::{
 
 use razer_protocol::{Batch, Model, Query, REPORT_LEN, Report, Setting, Status, commands};
 
-use crate::hid::{Hid, Interface};
+use crate::{Interface, sys::Hid};
 
 #[derive(Debug)]
 pub enum Error {
@@ -56,16 +56,16 @@ pub struct Device {
 }
 
 impl Device {
-    /// Opens `iface` if it is the control collection of a known mouse. A
-    /// receiver whose mouse is asleep opens too, but has yet to identify it.
-    pub fn open(iface: &Interface) -> Option<Self> {
-        let model = Model::find(iface.pid)?;
-        let hid = Hid::open(&iface.path)
-            .inspect_err(|e| log::debug!("cannot open {}: {e}", iface.display_path()))
-            .ok()?;
-        if hid.feature_len != REPORT_LEN + 1 {
-            return None;
-        }
+    /// Opens `iface` if it is the control interface of a known mouse, the
+    /// one whose feature report is a whole report after its ID. A receiver
+    /// whose mouse is asleep opens too, but has yet to identify it.
+    pub fn open(iface: &Interface) -> io::Result<Option<Self>> {
+        let Some(model) = Model::find(iface.pid) else {
+            return Ok(None);
+        };
+        let Some(hid) = Hid::open(&iface.path, REPORT_LEN + 1)? else {
+            return Ok(None);
+        };
         let mut device = Self {
             hid,
             model,
@@ -76,7 +76,7 @@ impl Device {
             confirmed: Cell::new(false),
         };
         device.identify();
-        Some(device)
+        Ok(Some(device))
     }
 
     pub fn identified(&self) -> bool {

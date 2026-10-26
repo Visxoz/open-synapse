@@ -9,10 +9,10 @@ export component SettingsPage {
         Section {
             title: "BEHAVIOUR";
             Switch {
-                label: "Start with Windows";
+                label: "Start at sign-in";
                 detail: "Opens quietly in the tray when you sign in.";
-                checked: Backend.start-with-windows;
-                toggled(on) => { Backend.set-start-with-windows(on); }
+                checked: Backend.start-at-login;
+                toggled(on) => { Backend.set-start-at-login(on); }
             }
 
             Switch {

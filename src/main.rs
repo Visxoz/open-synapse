@@ -2,20 +2,20 @@
 
 mod app;
 mod artwork;
+mod http;
 mod logger;
+mod platform;
 mod profiles;
 mod settings;
 mod storage;
 mod update;
-mod win;
 mod worker;
 
 use std::cell::Cell;
 
-use i_slint_backend_winit::winit::{
-    platform::windows::{CornerPreference, WindowAttributesExtWindows},
-    window::WindowAttributes,
-};
+#[cfg(windows)]
+use i_slint_backend_winit::winit::platform::windows::{CornerPreference, WindowAttributesExtWindows};
+use i_slint_backend_winit::winit::window::WindowAttributes;
 use slint::{CloseRequestResponse, ComponentHandle, PhysicalPosition, PhysicalSize};
 
 use crate::{app::App, settings::WindowGeometry};
@@ -31,13 +31,15 @@ thread_local! {
     static POPUP_NEXT: Cell<bool> = const { Cell::new(false) };
 }
 
-/// A pop-up: no frame, square corners and no button in the taskbar.
+/// A pop-up: no frame, and on Windows square corners and no button in the
+/// taskbar.
 fn popup_attributes(attributes: WindowAttributes) -> WindowAttributes {
-    attributes
-        .with_decorations(false)
-        .with_resizable(false)
+    let attributes = attributes.with_decorations(false).with_resizable(false);
+    #[cfg(windows)]
+    let attributes = attributes
         .with_skip_taskbar(true)
-        .with_corner_preference(CornerPreference::DoNotRound)
+        .with_corner_preference(CornerPreference::DoNotRound);
+    attributes
 }
 
 fn restore_geometry(ui: &AppWindow, geometry: Option<WindowGeometry>) {
@@ -73,10 +75,10 @@ fn current_geometry(ui: &AppWindow, previous: Option<WindowGeometry>) -> Option<
 }
 
 /// Skia on the CPU, which keeps the GPU driver and its memory out of the
-/// process, or, when chosen, on the GPU through Direct3D 12 rather than the
-/// Vulkan wgpu might otherwise pick.
+/// process, or, when chosen, on the GPU: on Windows through Direct3D 12
+/// rather than the Vulkan wgpu might otherwise pick.
 fn select_renderer(gpu: bool) {
-    if gpu && std::env::var_os("WGPU_BACKEND").is_none() {
+    if cfg!(windows) && gpu && std::env::var_os("WGPU_BACKEND").is_none() {
         // SAFETY: called first thing in `main`, before any other thread starts.
         unsafe { std::env::set_var("WGPU_BACKEND", "dx12") };
     }
@@ -106,7 +108,7 @@ fn main() {
     logger::init();
     let settings = settings::Settings::load();
     select_renderer(settings.gpu);
-    let Some(mut instance) = win::single_instance::acquire() else {
+    let Some(mut instance) = platform::single_instance::acquire() else {
         return;
     };
     update::clean_up();
@@ -134,7 +136,7 @@ fn main() {
         CloseRequestResponse::HideWindow
     });
 
-    if std::env::args().any(|a| a == win::autostart::TRAY_ARG) {
+    if std::env::args().any(|a| a == platform::TRAY_ARG) {
         app.hide();
     } else {
         app.show();

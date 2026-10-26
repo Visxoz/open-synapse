@@ -5,8 +5,13 @@ use std::time::Instant;
 fn main() {
     for iface in razer_driver::candidates() {
         let start = Instant::now();
-        let Some(device) = razer_driver::Device::open(&iface) else {
-            continue;
+        let device = match razer_driver::Device::open(&iface) {
+            Ok(Some(device)) => device,
+            Ok(None) => continue,
+            Err(e) => {
+                println!("{} (PID {:04X}) cannot be opened: {e}", iface.display_path(), iface.pid);
+                continue;
+            }
         };
         let opened = start.elapsed();
         let state = device.read_state();

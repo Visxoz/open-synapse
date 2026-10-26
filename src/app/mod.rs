@@ -17,14 +17,14 @@ use std::{
 };
 
 use razer_protocol::EffectParams;
-use slint::{ComponentHandle, Timer, TimerMode};
+use slint::{ComponentHandle, Timer, TimerMode, winit_030::WinitWindowAccessor};
 
 use crate::{
-    AppWindow, Tray, TrayPanel,
+    AppWindow, Theme, Tray, TrayPanel,
+    platform::{self, programs::ForegroundHook},
     profiles::Profiles,
     settings::Settings,
     update::Update,
-    win::programs::ForegroundHook,
     worker::{Event, Info, Worker},
 };
 
@@ -122,6 +122,7 @@ impl App {
             foreground: RefCell::new(None),
         });
         CURRENT.set(Rc::downgrade(&app));
+        set_fonts(ui, &app.panel);
         app.bind(ui);
         app.watch_panel();
         app.watch_foreground();
@@ -178,7 +179,7 @@ impl App {
             ui.window().set_minimized(false);
             self.refresh_pointer();
             self.sync_shown();
-            style_title_bar(20);
+            present(20);
         }
     }
 
@@ -197,15 +198,27 @@ impl App {
 
 /// The native window appears a moment after `show`, so this retries until
 /// it can style it and bring it forward.
-fn style_title_bar(attempts: u32) {
-    with_app(|app| match crate::win::window::hwnd(app.ui().window()) {
-        Some(hwnd) => {
-            crate::win::window::style_title_bar(hwnd, crate::BACKGROUND);
-            crate::win::window::bring_to_front(hwnd);
+fn present(attempts: u32) {
+    with_app(|app| {
+        let ui = app.ui();
+        let window = ui.window();
+        if window.has_winit_window() {
+            platform::window::style_title_bar(window, crate::BACKGROUND);
+            platform::window::bring_to_front(window);
+        } else if attempts > 0 {
+            Timer::single_shot(Duration::from_millis(50), move || present(attempts - 1));
+        } else {
+            log::debug!("no native window to bring forward");
         }
-        None if attempts > 0 => {
-            Timer::single_shot(Duration::from_millis(50), move || style_title_bar(attempts - 1));
-        }
-        None => log::debug!("no window handle to style"),
     });
+}
+
+/// Sets the UI in this platform's typefaces, where Windows' are missing.
+fn set_fonts(ui: &AppWindow, panel: &TrayPanel) {
+    let Some(fonts) = platform::FONTS else { return };
+    for theme in [ui.global::<Theme>(), panel.global::<Theme>()] {
+        theme.set_display(fonts.display.into());
+        theme.set_body(fonts.body.into());
+        theme.set_mono(fonts.mono.into());
+    }
 }

@@ -1,4 +1,4 @@
-//! Windows HID: listing interfaces and exchanging feature reports.
+//! Listing HID collections and exchanging feature reports.
 
 use std::{io, ptr};
 
@@ -18,20 +18,16 @@ use windows_sys::Win32::{
 };
 use windows_sys::core::GUID;
 
-/// A HID collection's device path, NUL-terminated, and its USB IDs.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Interface {
-    pub path: Vec<u16>,
-    pub pid: u16,
+use crate::Interface;
+
+/// A HID collection's device path, NUL-terminated.
+pub type Path = Vec<u16>;
+
+pub fn display(path: &Path) -> String {
+    String::from_utf16_lossy(path.strip_suffix(&[0]).unwrap_or(path))
 }
 
-impl Interface {
-    pub fn display_path(&self) -> String {
-        String::from_utf16_lossy(self.path.strip_suffix(&[0]).unwrap_or(&self.path))
-    }
-}
-
-pub(crate) fn hid_guid() -> GUID {
+pub(super) fn hid_guid() -> GUID {
     let mut guid = GUID::from_u128(0);
     // SAFETY: `guid` is a valid out pointer for the duration of the call.
     unsafe { HidD_GetHidGuid(&mut guid) };
@@ -80,7 +76,7 @@ pub fn interfaces(vid: u16) -> Vec<Interface> {
 }
 
 /// The `VID_xxxx` and `PID_xxxx` in a device path.
-pub(crate) fn usb_ids(path: &[u16]) -> Option<(u16, u16)> {
+pub(super) fn usb_ids(path: &[u16]) -> Option<(u16, u16)> {
     let path = String::from_utf16_lossy(path).to_ascii_lowercase();
     let hex = |key: &str| {
         let at = path.find(key)? + key.len();
@@ -92,7 +88,6 @@ pub(crate) fn usb_ids(path: &[u16]) -> Option<(u16, u16)> {
 /// An open HID collection.
 pub struct Hid {
     handle: HANDLE,
-    pub feature_len: usize,
 }
 
 // SAFETY: a file handle may be used from any thread; `Hid` is only ever
@@ -100,10 +95,11 @@ pub struct Hid {
 unsafe impl Send for Hid {}
 
 impl Hid {
-    /// Opens without read or write access, which feature reports do not
-    /// need, so collections Windows keeps for itself, such as the mouse's
-    /// own, still open.
-    pub fn open(path: &[u16]) -> io::Result<Self> {
+    /// Opens the collection if its longest feature report is `feature_len`
+    /// bytes with the report ID. It opens without read or write access,
+    /// which feature reports do not need, so collections Windows keeps for
+    /// itself, such as the mouse's own, still open.
+    pub fn open(path: &[u16], feature_len: usize) -> io::Result<Option<Self>> {
         debug_assert_eq!(path.last(), Some(&0));
         // SAFETY: `path` is NUL-terminated; the other arguments are plain values.
         let handle = unsafe {
@@ -120,9 +116,9 @@ impl Hid {
         if handle == INVALID_HANDLE_VALUE {
             return Err(io::Error::last_os_error());
         }
-        let mut hid = Self { handle, feature_len: 0 };
-        hid.feature_len = hid.caps()?.FeatureReportByteLength.into();
-        Ok(hid)
+        let hid = Self { handle };
+        let len: usize = hid.caps()?.FeatureReportByteLength.into();
+        Ok((len == feature_len).then_some(hid))
     }
 
     fn caps(&self) -> io::Result<HIDP_CAPS> {

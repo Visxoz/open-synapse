@@ -1,4 +1,6 @@
-//! JSON files in `%APPDATA%\open-synapse`.
+//! JSON files in the data folder: `%APPDATA%\open-synapse` on Windows,
+//! `~/.config/open-synapse` on Linux and
+//! `~/Library/Application Support/open-synapse` on macOS.
 
 use std::{
     io,
@@ -8,8 +10,7 @@ use std::{
 use serde::{Serialize, de::DeserializeOwned};
 
 pub fn data_dir() -> PathBuf {
-    std::env::var_os("APPDATA")
-        .map(PathBuf::from)
+    crate::platform::config_dir()
         .unwrap_or_else(std::env::temp_dir)
         .join("open-synapse")
 }

@@ -8,7 +8,7 @@ use slint::ComponentHandle;
 use super::{App, lighting::rgb};
 use crate::{
     AppWindow, Backend,
-    win::{autostart, pointer},
+    platform::{autostart, pointer},
 };
 
 fn u16_of(v: i32) -> u16 {
@@ -30,6 +30,7 @@ impl App {
         }
         let b = ui.global::<Backend>();
         b.set_version(env!("CARGO_PKG_VERSION").into());
+        b.set_has_pointer(pointer::AVAILABLE);
 
         on!(b, on_select_device, |app, i| app.select_device(i as usize));
         on!(b, on_activate_stage, |app, i| app
@@ -111,7 +112,7 @@ impl App {
             }
         ));
 
-        on!(b, on_set_start_with_windows, |app, on| {
+        on!(b, on_set_start_at_login, |app, on| {
             if let Err(e) = autostart::set(on) {
                 app.notify(&format!("Could not change start-up: {e}"));
             }

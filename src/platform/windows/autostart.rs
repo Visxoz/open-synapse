@@ -1,4 +1,4 @@
-//! Starting with Windows, through the current user's Run key.
+//! Starting at sign-in, through the current user's Run key.
 
 use std::{io, ptr};
 
@@ -8,11 +8,10 @@ use windows_sys::Win32::{
 };
 
 use super::wide;
+use crate::platform::TRAY_ARG;
 
 const RUN_KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Run";
 const VALUE: &str = "Open Synapse";
-/// Passed when started with Windows, to begin in the tray.
-pub const TRAY_ARG: &str = "--tray";
 
 pub fn enabled() -> bool {
     let (key, value) = (wide(RUN_KEY), wide(VALUE));

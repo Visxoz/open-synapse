@@ -13,7 +13,10 @@ use slint::{
 };
 
 use super::{App, POINTER_EVERY, with_app};
-use crate::{win::window, worker::Request};
+use crate::{
+    platform::{pointer, window},
+    worker::Request,
+};
 
 /// A click on the tray icon takes the focus first, which closes the panel;
 /// that click must not open it again.
@@ -71,9 +74,12 @@ impl App {
         });
     }
 
-    /// Opens the panel, or closes it if it is open.
+    /// Opens the panel, or closes it if it is open; shows the window instead
+    /// where the platform has no place for a panel by the tray.
     pub(super) fn toggle_panel(&self) {
-        if self.panel.window().is_visible() {
+        if !window::TRAY_PANEL {
+            self.show();
+        } else if self.panel.window().is_visible() {
             self.hide_panel();
         } else if !self.panel_hidden.get().is_some_and(|at| at.elapsed() < REOPEN_GRACE) {
             self.show_panel();
@@ -116,7 +122,8 @@ impl App {
         let window = self.ui().window().is_visible();
         self.worker
             .send(Request::Shown(window || self.panel.window().is_visible()));
-        if !window {
+        // The pointer settings are polled while shown, where the system has them.
+        if !window || !pointer::AVAILABLE {
             self.pointer_timer.stop();
         } else if !self.pointer_timer.running() {
             self.pointer_timer.start(TimerMode::Repeated, POINTER_EVERY, || {
@@ -136,20 +143,20 @@ impl App {
         }
         let (width, height) = (self.panel.get_panel_width(), self.panel.get_panel_height());
         let settled = self.panel_drawn.get() && window.size().height == (height * window.scale_factor()).round() as u32;
-        match window::hwnd(window) {
-            Some(hwnd) if settled || tries == 0 => {
-                if self.panel_fade.layered {
-                    window::set_alpha(hwnd, 0.);
-                }
-                if let Some((x, y)) = window::popup_origin(width, height) {
-                    window.set_position(PhysicalPosition::new(x, y));
-                }
-                window::bring_to_front(hwnd);
-                self.panel.set_shown(true);
-                self.run_fade();
+        if window.has_winit_window() && (settled || tries == 0) {
+            if self.panel_fade.layered {
+                window::set_alpha(window, 0.);
             }
-            None if tries == 0 => log::debug!("no window handle for the panel"),
-            _ => Timer::single_shot(PLACE_EVERY, move || with_app(|app| app.place_panel(tries - 1))),
+            if let Some((x, y)) = window::popup_origin(width, height) {
+                window.set_position(PhysicalPosition::new(x, y));
+            }
+            window::bring_to_front(window);
+            self.panel.set_shown(true);
+            self.run_fade();
+        } else if tries == 0 {
+            log::debug!("no native window for the panel");
+        } else {
+            Timer::single_shot(PLACE_EVERY, move || with_app(|app| app.place_panel(tries - 1)));
         }
     }
 
@@ -171,10 +178,8 @@ impl App {
             (alpha - step).max(target)
         };
         fade.alpha.set(alpha);
-        if fade.layered
-            && let Some(hwnd) = window::hwnd(self.panel.window())
-        {
-            window::set_alpha(hwnd, alpha);
+        if fade.layered {
+            window::set_alpha(self.panel.window(), alpha);
         }
         if alpha == target {
             fade.timer.stop();

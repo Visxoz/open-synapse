@@ -85,7 +85,7 @@ pub fn load(pid: u16, url: Option<&str>) -> io::Result<Art> {
         Ok(bytes) => decode(&bytes)?,
         Err(_) => {
             let url = url.ok_or_else(|| io::Error::other("no picture of this model"))?;
-            let decoded = decode(&crate::win::http::get(url, MAX_DOWNLOAD)?)?;
+            let decoded = decode(&crate::http::get(url, MAX_DOWNLOAD)?)?;
             // Kept at the decoded size, so the full render is fetched and
             // decoded only once.
             if let Some(dir) = path.parent() {
