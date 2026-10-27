@@ -1,0 +1,16 @@
+# Advisories that need no action of ours. Each crate comes in through Slint, none
+# is built on Windows, and none has a fix short of an upstream release.
+[advisories]
+ignore = [
+    # bincode: an optional dependency of typed-index-collections that Slint's
+    # compiler leaves off, so it is in the lock file but never built.
+    "RUSTSEC-2025-0141",
+    # ttf-parser: winit's Wayland title bar (sctk-adwaita), on Linux.
+    "RUSTSEC-2026-0192",
+    # zvariant, zbus_names, zvariant_derive: merged into zbus 6, but ksni (the
+    # Linux tray) and accesskit_unix still use zbus 5. Drop these once Slint
+    # moves to zbus 6.
+    "RUSTSEC-2026-0370",
+    "RUSTSEC-2026-0371",
+    "RUSTSEC-2026-0372",
+]
