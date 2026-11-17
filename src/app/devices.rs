@@ -12,7 +12,7 @@ use crate::{
 
 /// How long after a change of the user's polled values are ignored, as
 /// they may predate it.
-const SETTLE: Duration = Duration::from_millis(1500);
+const SETTLE: Duration = crate::worker::AFTER_WRITE;
 
 impl App {
     /// Brings `device` in line with the active profile, or lends the profile
@@ -79,36 +79,39 @@ impl App {
         {
             let mut guard = self.state.borrow_mut();
             let st = &mut *guard;
-            let recent = st.touched.is_some_and(|t| t.elapsed() < SETTLE);
+            st.touched.retain(|(.., t)| t.elapsed() < SETTLE);
+            let touched = &st.touched;
             let Some(device) = st.devices.iter_mut().find(|d| d.id == info.id) else {
                 return;
             };
+            let mut info = info;
             let woke = !device.state.awake && info.state.awake;
-            if recent && !woke {
-                device.state.battery = info.state.battery;
-                device.state.charging = info.state.charging;
-                device.state.awake = info.state.awake;
-            } else {
-                // What changed without us, by the DPI button or another
-                // program, is kept, so the profile does not undo it later.
-                if !woke && info.state.awake {
-                    let before = device.state.settings();
-                    let pid = device.model.pid;
-                    let outside: Vec<Setting> = info
-                        .state
-                        .settings()
-                        .into_iter()
-                        .filter(|s| !before.contains(s))
-                        .collect();
-                    if !outside.is_empty() {
-                        for s in outside {
-                            st.profiles.active_mut().store(pid, s);
-                        }
-                        self.save_soon();
+            if !woke {
+                for s in device.state.settings() {
+                    if touched.iter().any(|&(id, slot, _)| id == info.id && slot == s.slot()) {
+                        info.state.apply(&s);
                     }
                 }
-                *device = info;
             }
+            // What changed without us, by the DPI button or another program,
+            // is kept, so the profile does not undo it later.
+            if !woke && info.state.awake {
+                let before = device.state.settings();
+                let pid = device.model.pid;
+                let outside: Vec<Setting> = info
+                    .state
+                    .settings()
+                    .into_iter()
+                    .filter(|s| !before.contains(s))
+                    .collect();
+                if !outside.is_empty() {
+                    for s in outside {
+                        st.profiles.active_mut().store(pid, s);
+                    }
+                    self.save_soon();
+                }
+            }
+            *device = info;
             if woke {
                 self.sync_profile(&mut st.profiles, device);
                 st.load_params();
@@ -141,7 +144,8 @@ impl App {
         device.state.apply(&setting);
         let (id, pid) = (device.id, device.model.pid);
         st.profiles.active_mut().store(pid, setting.clone());
-        st.touched = Some(Instant::now());
+        st.touched.retain(|&(d, slot, _)| (d, slot) != (id, setting.slot()));
+        st.touched.push((id, setting.slot(), Instant::now()));
         drop(st);
         self.worker.apply(id, vec![setting]);
         self.save_soon();

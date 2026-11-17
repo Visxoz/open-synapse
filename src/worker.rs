@@ -14,6 +14,10 @@ use razer_protocol::{Model, Setting};
 const SETTLE: Duration = Duration::from_millis(400);
 const POLL_SHOWN: Duration = Duration::from_secs(2);
 const POLL_HIDDEN: Duration = Duration::from_secs(60);
+/// How long after a write the next poll waits: the app ignores values polled
+/// this soon after a change, and would never hear of a write that did not
+/// take. A rate dropping from 8000 Hz also reads back stale at first.
+pub const AFTER_WRITE: Duration = Duration::from_millis(1500);
 
 pub type DeviceId = u32;
 
@@ -121,6 +125,7 @@ impl Run {
         self.rescan();
         (self.sink)(Event::Scanned);
         let mut next_poll = Instant::now() + POLL_SHOWN;
+        let mut hold = Instant::now();
         loop {
             let first = match rx.recv_timeout(next_poll.saturating_duration_since(Instant::now())) {
                 Ok(request) => request,
@@ -136,10 +141,13 @@ impl Run {
                 thread::sleep(SETTLE);
                 requests.extend(rx.try_iter());
             }
-            self.handle(requests);
+            let wrote = self.handle(requests);
             // Showing the window may have shortened the wait, or ended it.
             let wait = if self.reread { Duration::ZERO } else { self.poll_every() };
-            next_poll = next_poll.min(Instant::now() + wait);
+            if wrote {
+                hold = Instant::now() + AFTER_WRITE;
+            }
+            next_poll = next_poll.min(Instant::now() + wait).max(hold);
         }
     }
 
@@ -147,7 +155,8 @@ impl Run {
         if self.shown { POLL_SHOWN } else { POLL_HIDDEN }
     }
 
-    fn handle(&mut self, requests: Vec<Request>) {
+    /// Returns whether anything was written.
+    fn handle(&mut self, requests: Vec<Request>) -> bool {
         let mut rescan = false;
         // Only the newest value per device and slot is worth sending.
         let mut pending: Vec<(DeviceId, Setting)> = Vec::new();
@@ -169,10 +178,12 @@ impl Run {
         if rescan {
             self.rescan();
         }
+        let mut wrote = false;
         for (id, setting) in pending {
-            let Some(open) = self.devices.iter().find(|o| o.id == id) else {
+            let Some(open) = self.devices.iter_mut().find(|o| o.id == id) else {
                 continue;
             };
+            wrote = true;
             if let Err(e) = open.device.apply(&setting) {
                 log::warn!("{}: {setting:?} failed: {e}", open.device.model.name);
                 (self.sink)(Event::Failed(format!(
@@ -180,7 +191,12 @@ impl Run {
                     open.device.model.name
                 )));
             }
+            // What the app now shows, so a poll that finds otherwise tells
+            // it, even when the write failed or the mouse went back to what
+            // it last reported.
+            open.state.apply(&setting);
         }
+        wrote
     }
 
     fn rescan(&mut self) {

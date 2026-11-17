@@ -16,7 +16,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use razer_protocol::EffectParams;
+use razer_protocol::{EffectParams, Slot};
 use slint::{ComponentHandle, Timer, TimerMode};
 
 use crate::{
@@ -25,7 +25,7 @@ use crate::{
     settings::Settings,
     update::Update,
     win::programs::ForegroundHook,
-    worker::{Event, Info, Worker},
+    worker::{DeviceId, Event, Info, Worker},
 };
 
 const SAVE_AFTER: Duration = Duration::from_millis(800);
@@ -60,9 +60,9 @@ struct State {
     /// The profile picked by hand, to return to when a linked program
     /// leaves the front.
     chosen: usize,
-    /// When the user last changed a setting, so values polled meanwhile do
-    /// not undo it.
-    touched: Option<Instant>,
+    /// When the user last changed each setting, so values polled meanwhile
+    /// do not undo it.
+    touched: Vec<(DeviceId, Slot, Instant)>,
     pictures: pictures::Pictures,
     /// A newer release found on GitHub, ready to install.
     update: Option<Update>,
@@ -111,7 +111,7 @@ impl App {
                 selected: 0,
                 zone: 0,
                 params: EffectParams::default(),
-                touched: None,
+                touched: Vec::new(),
                 pictures: Default::default(),
                 update: None,
             }),
