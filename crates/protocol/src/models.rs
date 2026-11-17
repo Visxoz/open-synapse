@@ -1,5 +1,5 @@
 //! Every supported mouse, derived from OpenRazer's razermouse driver and
-//! daemon (GPL-2.0-or-later, commit 477f4d6), and corrected where noted
+//! daemon (GPL-2.0-or-later, commit cd5c424), and corrected where noted
 //! against Razer's specifications and the razercfg and OpenRGB drivers.
 
 use crate::flags::set;
@@ -741,6 +741,26 @@ pub(crate) static MODELS: &[Model] = &[
         lighting: Lighting {
             proto: LightProto::Classic,
             zones: &[Zone::new(Led::Logo, set!(Effects: ON | OFF), false)],
+            rgb: false,
+        },
+    },
+    Model {
+        pid: 0x005F,
+        name: "Razer DeathAdder 2000",
+        link: Link::Wired,
+        tid: 0xFF,
+        wait: Wait::Quick,
+        dpi: DpiRange::Word { max: 2000 },
+        poll: Poll::Classic(&[125, 500, 1000]),
+        power: Power::NONE,
+        features: Features::NONE,
+        // As 0x004F.
+        lighting: Lighting {
+            proto: LightProto::Classic,
+            zones: &[
+                Zone::new(Led::Logo, set!(Effects: STATIC | BREATH_SINGLE | OFF), true),
+                Zone::new(Led::Scroll, set!(Effects: STATIC | BREATH_SINGLE | OFF), true),
+            ],
             rgb: false,
         },
     },
@@ -2033,7 +2053,7 @@ pub(crate) static MODELS: &[Model] = &[
         wait: Wait::Receiver,
         // Razer rates its Focus Pro 30K sensor at 30,000 DPI; OpenRazer says 35,000.
         dpi: DpiRange::Word { max: 30000 },
-        poll: Poll::Classic(&[125, 500, 1000]),
+        poll: Poll::Hyper(&[125, 500, 1000, 2000, 4000, 8000]),
         power: set!(Power: BATTERY | CHARGING | IDLE | LOW_BATTERY),
         features: set!(Features: DPI_STAGES),
         lighting: Lighting::NONE,
@@ -2334,8 +2354,20 @@ pub(crate) static MODELS: &[Model] = &[
         features: set!(Features: DPI_STAGES),
         lighting: Lighting::NONE,
     },
-    // From OpenRazer pull request 2751, not yet merged; the receiver's
-    // three lights were found by probing.
+    Model {
+        pid: 0x00E0,
+        name: "Razer Orochi V2 2026 (Receiver)",
+        link: Link::Wireless,
+        tid: 0x1F,
+        wait: Wait::Slow,
+        dpi: DpiRange::Word { max: 18000 },
+        poll: Poll::Classic(&[125, 500, 1000]),
+        // Runs on disposable cells, so there is no charging to report (Razer specs).
+        power: set!(Power: BATTERY | IDLE | LOW_BATTERY),
+        features: set!(Features: DPI_STAGES),
+        lighting: Lighting::NONE,
+    },
+    // The receiver's three lights were found by probing.
     Model {
         pid: 0x00E5,
         name: "Razer Viper V4 Pro (Wired)",

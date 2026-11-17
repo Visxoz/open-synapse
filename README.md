@@ -11,7 +11,7 @@ No account, no sign-in, no services running in the background.
 
 [![CI](https://github.com/Visxoz/open-synapse/actions/workflows/ci.yml/badge.svg)](https://github.com/Visxoz/open-synapse/actions/workflows/ci.yml)
 [![Windows 10 and 11](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6?logo=windows&logoColor=white)](#download)
-[![116 mice](https://img.shields.io/badge/mice-116%20models-44d62c)](#supported-mice)
+[![118 mice](https://img.shields.io/badge/mice-118%20models-44d62c)](#supported-mice)
 [![GPL-3.0](https://img.shields.io/badge/licence-GPL--3.0-blue.svg)](LICENSE)
 
 <br>
@@ -87,7 +87,7 @@ Both flavours check GitHub for new versions and can update themselves from Setti
 
 ## Supported mice
 
-116 models across every family Razer has made since 2012.
+118 models across every family Razer has made since 2012.
 
 <details>
 <summary>Show the breakdown</summary>
@@ -95,10 +95,10 @@ Both flavours check GitHub for new versions and can update themselves from Setti
 
 | Family | Models | | Family | Models |
 | --- | ---: | --- | --- | ---: |
-| DeathAdder | 24 | | Abyssus | 6 |
+| DeathAdder | 25 | | Abyssus | 6 |
 | Naga | 18 | | Lancehead | 5 |
 | Basilisk | 17 | | Cobra | 5 |
-| Viper | 16 | | Orochi | 4 |
+| Viper | 16 | | Orochi | 5 |
 | Mamba | 8 | | Atheris, Diamondback, Imperator, Ouroboros, Taipan | 1 each |
 | Pro Click | 7 | | HyperPolling Wireless Dongle | 1 |
 

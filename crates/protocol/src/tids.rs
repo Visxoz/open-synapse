@@ -1,6 +1,6 @@
 //! Commands a model expects under a transaction ID other than its usual
 //! one, as OpenRazer's razermouse driver sends them (GPL-2.0-or-later,
-//! commit 477f4d6). Where OpenRazer itself uses several IDs for one command,
+//! commit cd5c424). Where OpenRazer itself uses several IDs for one command,
 //! none is listed and the device falls back to trying each.
 
 use crate::model::TidFor;
@@ -47,6 +47,7 @@ pub(crate) static TIDS: &[(u16, &[TidFor])] = &[
     (0x005A, STAGES_POWER),                                                     // Razer Lancehead (Wireless)
     (0x005B, CLASSIC),                                                          // Razer Abyssus V2
     (0x005E, LED_STATE),                                                        // Razer Abyssus 2000
+    (0x005F, &[t(0x03, 0x00, 0x3F), t(0x03, 0x02, 0x3F)]),                      // Razer DeathAdder 2000
     (0x0060, STAGES),                                                           // Razer Lancehead Tournament Edition
     (0x0062, STAGES_POWER),                                                     // Razer Atheris (Receiver)
     (0x0065, STAGES),                                                           // Razer Basilisk Essential
@@ -112,6 +113,7 @@ pub(crate) static TIDS: &[(u16, &[TidFor])] = &[
     (0x00D6, LOW_BATTERY),            // Razer Basilisk V3 Pro 35K Phantom Green Edition (Wired)
     (0x00D7, LOW_BATTERY),            // Razer Basilisk V3 Pro 35K Phantom Green Edition (Wireless)
     (0x00DA, LOW_BATTERY),            // Razer Cobra HyperSpeed
+    (0x00E0, POWER),                  // Razer Orochi V2 2026 (Receiver)
 ];
 
 #[cfg(test)]

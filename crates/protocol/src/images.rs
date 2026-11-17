@@ -1,5 +1,5 @@
 //! Each model's product render, from OpenRazer's daemon (GPL-2.0-or-later,
-//! commit 477f4d6). The images belong to Razer and are fetched from its site.
+//! commit cd5c424). The images belong to Razer and are fetched from its site.
 
 pub(crate) static IMAGES: &[(u16, &str)] = &[
     (
@@ -130,6 +130,10 @@ pub(crate) static IMAGES: &[(u16, &str)] = &[
     (
         0x005E,
         "https://assets.razerzone.com/eeimages/support/products/1277/1277_abyssus_2000.png",
+    ),
+    (
+        0x005F,
+        "https://assets2.razerzone.com/images/da10m/carousel/razer-death-adder-gallery-09.png",
     ),
     (
         0x0060,
@@ -333,7 +337,7 @@ pub(crate) static IMAGES: &[(u16, &str)] = &[
     (0x00DB, "https://dl.razerzone.com/src2/15141/15141-1-en-v1.png"),
     (0x00DE, "https://dl.razerzone.com/src2/14044/14044-1-en-v1.png"),
     (0x00DF, "https://dl.razerzone.com/src2/14044/14044-1-en-v1.png"),
-    // From OpenRazer pull request 2751.
+    (0x00E0, "https://dl.razerzone.com/src/OrochiV2-1-en-v1.png"),
     (0x00E5, "https://dl.razerzone.com/src2/20779/20779-01-en-v1.png"),
     (0x00E6, "https://dl.razerzone.com/src2/20779/20779-01-en-v1.png"),
 ];
